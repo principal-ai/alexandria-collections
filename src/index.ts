@@ -1,5 +1,6 @@
 export type {
   GithubRepository,
+  AlexandriaRepository,
   Collection,
   CollectionMembership,
   CollectionsData,

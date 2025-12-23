@@ -53,6 +53,37 @@ export interface GithubRepository {
 }
 
 // ============================================================================
+// Alexandria Repository Types
+// ============================================================================
+
+/**
+ * Alexandria repository with optional GitHub remote information
+ * Base type for repositories in the Alexandria ecosystem
+ */
+export interface AlexandriaRepository {
+  /** Project/repository name */
+  name: string;
+
+  /** Git remote URL */
+  remoteUrl?: string;
+
+  /** ISO timestamp when repository was registered */
+  registeredAt: string;
+
+  /** GitHub metadata when available */
+  github?: GithubRepository;
+
+  /** ISO timestamp when metadata was last verified/refreshed */
+  lastChecked?: string;
+
+  /** Optional color for visual representation (e.g., "#FF5733", "blue", "rgb(255,87,51)") */
+  bookColor?: string;
+
+  /** Optional theme identifier */
+  theme?: string;
+}
+
+// ============================================================================
 // Collection Types
 // ============================================================================
 

@@ -6,6 +6,56 @@
  * alongside locally cloned ones.
  */
 
+// ============================================================================
+// GitHub Repository Types
+// ============================================================================
+
+/**
+ * Pure GitHub repository metadata
+ * Standard fields from GitHub API
+ */
+export interface GithubRepository {
+  /** Repository identifier in owner/name format */
+  id: string;
+
+  /** Repository owner (username or organization) */
+  owner: string;
+
+  /** Repository name */
+  name: string;
+
+  /** Repository description */
+  description?: string;
+
+  /** Number of GitHub stars */
+  stars: number;
+
+  /** Primary programming language */
+  primaryLanguage?: string;
+
+  /** Repository topics from GitHub */
+  topics?: string[];
+
+  /** License identifier (e.g., "MIT", "Apache-2.0") */
+  license?: string;
+
+  /** ISO timestamp of last commit */
+  lastCommit?: string;
+
+  /** Default branch name (e.g., "main", "master") */
+  defaultBranch?: string;
+
+  /** Whether repository is public */
+  isPublic?: boolean;
+
+  /** ISO timestamp when GitHub metadata was last updated */
+  lastUpdated: string;
+}
+
+// ============================================================================
+// Collection Types
+// ============================================================================
+
 /**
  * A collection for organizing repositories
  * Does not require local clones - can reference remote repositories

@@ -48,6 +48,15 @@ export interface GithubRepository {
   /** Whether repository is public */
   isPublic?: boolean;
 
+  /** Whether this repository is a fork */
+  isFork?: boolean;
+
+  /** Source repository if this is a fork */
+  source?: {
+    owner: string;
+    name: string;
+  };
+
   /** ISO timestamp when GitHub metadata was last updated */
   lastUpdated: string;
 }

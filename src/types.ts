@@ -6,13 +6,15 @@
  * alongside locally cloned ones.
  */
 
+import type { PackagesSliceData, QualityMetrics } from '@principal-ai/codebase-composition';
+
 // ============================================================================
 // GitHub Repository Types
 // ============================================================================
 
 /**
- * Pure GitHub repository metadata
- * Standard fields from GitHub API
+ * Pure GitHub repository identity (stable data only)
+ * Volatile metadata (stars, topics, etc.) moved to RepositoryTraits
  */
 export interface GithubRepository {
   /** Repository identifier in owner/name format */
@@ -24,41 +26,20 @@ export interface GithubRepository {
   /** Repository name */
   name: string;
 
-  /** Repository description */
-  description?: string;
-
-  /** Number of GitHub stars */
-  stars: number;
-
-  /** Primary programming language */
-  primaryLanguage?: string;
-
-  /** Repository topics from GitHub */
-  topics?: string[];
-
-  /** License identifier (e.g., "MIT", "Apache-2.0") */
-  license?: string;
-
-  /** ISO timestamp of last commit */
-  lastCommit?: string;
-
-  /** Default branch name (e.g., "main", "master") */
+  /** Default branch name (e.g., "main", "master") - rarely changes */
   defaultBranch?: string;
 
-  /** Whether repository is public */
+  /** Whether repository is public - rarely changes */
   isPublic?: boolean;
 
-  /** Whether this repository is a fork */
+  /** Whether this repository is a fork - stable */
   isFork?: boolean;
 
-  /** Source repository if this is a fork */
+  /** Source repository if this is a fork - stable */
   source?: {
     owner: string;
     name: string;
   };
-
-  /** ISO timestamp when GitHub metadata was last updated */
-  lastUpdated: string;
 }
 
 // ============================================================================
@@ -168,4 +149,146 @@ export interface CollectionsData {
 export interface CollectionMembershipsData {
   version: string;
   memberships: CollectionMembership[];
+}
+
+// ============================================================================
+// Repository Traits Types
+// ============================================================================
+
+/**
+ * Repository traits for sprite rendering and visualization
+ * Cached separately from repository data with TTL
+ * Populated asynchronously from local filesystem or remote APIs
+ */
+export interface RepositoryTraits {
+  /** Repository identifier (references AlexandriaRepository.id) */
+  repositoryId: string;
+
+  // Top-level metrics (can come from multiple sources)
+  /** Total number of files in repository - used for sprite size calculation */
+  fileCount?: number;
+
+  /** Total lines of code (all files) - reserved for future use */
+  lineCount?: number;
+
+  /** Git commit hash for cache invalidation (local repos only) */
+  commitHash?: string;
+
+  /** Git traits (local repos only - from git history) */
+  git?: {
+    /** Number of unique contributors from git log */
+    contributors?: number;
+
+    /** ISO timestamp of last edit/commit - CRITICAL for age-based region grouping */
+    lastEditedAt?: string;
+
+    /** ISO timestamp of repository creation from git log */
+    createdAt?: string;
+  };
+
+  /** GitHub volatile metadata (available for both local and remote repos - from GitHub API) */
+  github?: {
+    /** Number of GitHub stars (changes frequently) */
+    stars?: number;
+
+    /** Primary programming language detected by GitHub */
+    primaryLanguage?: string;
+
+    /** Repository topics/tags from GitHub */
+    topics?: string[];
+
+    /** Repository description from GitHub */
+    description?: string;
+
+    /** License identifier (e.g., "MIT", "Apache-2.0") */
+    license?: string;
+
+    /** ISO timestamp of last commit from GitHub API */
+    lastCommit?: string;
+
+    /** ISO timestamp of repository creation from GitHub API */
+    createdAt?: string;
+
+    /** Number of contributors from GitHub API */
+    contributors?: number;
+  };
+
+  /** Package traits (from codebase-composition, local repos only) */
+  packages?: {
+    /**
+     * Complete package information including:
+     * - packages: PackageLayer[] (detailed package data)
+     * - summary: PackageSummary (aggregated stats)
+     */
+    data?: PackagesSliceData;
+
+    /**
+     * Repository-level quality metrics hexagon scores
+     * Note: Per-package quality metrics are in data.packages[].qualityMetrics
+     */
+    qualityMetrics?: Partial<QualityMetrics>;
+  };
+
+  // Cache metadata
+  /** Timestamp when traits were last fetched */
+  lastUpdated: number;
+
+  /** Time-to-live in milliseconds */
+  ttl: number;
+
+  /** Source of the traits data */
+  source: 'filesystem' | 'github-api' | 'mixed';
+
+  /** Extensible for future traits */
+  [key: string]: unknown;
+}
+
+/**
+ * Layout metadata for overworld map positioning
+ * Stored per-collection in CollectionMembership.metadata
+ */
+export interface RepositoryLayoutMetadata {
+  /** Grid X coordinate in overworld map */
+  gridX?: number;
+
+  /** Grid Y coordinate in overworld map */
+  gridY?: number;
+
+  /** Region identifier for multi-region maps */
+  regionId?: string;
+
+  /** Z-index override for visual layering */
+  zIndex?: number;
+
+  /** Whether position was manually set by user (vs auto-layout) */
+  isManuallyPositioned?: boolean;
+
+  /** Timestamp when position was last updated */
+  lastPositionedAt?: number;
+}
+
+/**
+ * Map-level configuration for overworld visualization
+ * Stored in Collection.metadata
+ */
+export interface CollectionMapMetadata {
+  /** Region layout configuration */
+  regionLayout?: {
+    columns?: number;
+    rows?: number;
+    fillDirection?: 'horizontal' | 'vertical';
+  };
+
+  /** Auto-layout algorithm preference */
+  autoLayout?: 'force-directed' | 'grid' | 'radial' | 'none';
+
+  /** Last known viewport position (for camera restoration) */
+  viewport?: {
+    centerX: number;
+    centerY: number;
+    zoom: number;
+  };
+
+  /** Active region when map has multiple regions */
+  activeRegionId?: string;
 }

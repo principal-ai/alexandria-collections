@@ -5,4 +5,12 @@ export type {
   CollectionMembership,
   CollectionsData,
   CollectionMembershipsData,
+  RepositoryLayoutMetadata,
+  CollectionMapMetadata,
+  CustomRegion,
+  CollectionMetadata,
+  RepositoryLayoutData,
+  CollectionMembershipMetadata,
+  RepositoryTraits,
+  RepositoryProvider,
 } from "./types";

@@ -292,3 +292,74 @@ export interface CollectionMapMetadata {
   /** Active region when map has multiple regions */
   activeRegionId?: string;
 }
+
+/**
+ * Custom region definition for manual layout
+ * Regions allow organizing repositories into visual groups on the overworld map
+ */
+export interface CustomRegion {
+  /** Unique region identifier */
+  id: string;
+  /** Display name for the region */
+  name: string;
+  /** Optional description */
+  description?: string;
+  /** Optional theme color (hex) */
+  color?: string;
+  /** Display order (0-based) */
+  order: number;
+  /** Unix timestamp when region was created */
+  createdAt: number;
+}
+
+/**
+ * Collection metadata with region support
+ * Extends the basic Collection.metadata with typed region fields
+ */
+export interface CollectionMetadata {
+  /** Custom regions defined by the user */
+  customRegions?: CustomRegion[];
+
+  /** Layout mode: 'auto' = age-based, 'manual' = user-defined regions */
+  layoutMode?: 'auto' | 'manual';
+
+  /** Map visualization configuration */
+  map?: CollectionMapMetadata;
+
+  /** Allow additional metadata */
+  [key: string]: unknown;
+}
+
+/**
+ * Manual layout position data for repositories
+ * Stored in CollectionMembership.metadata.layout
+ */
+export interface RepositoryLayoutData {
+  /** Grid X coordinate */
+  gridX: number;
+  /** Grid Y coordinate */
+  gridY: number;
+  /** Whether position was manually set */
+  isManuallyPositioned: boolean;
+}
+
+/**
+ * Collection membership metadata with region and layout support
+ * Extends the basic CollectionMembership.metadata with typed fields
+ */
+export interface CollectionMembershipMetadata {
+  /** Which custom region this repository belongs to */
+  regionId?: string;
+
+  /** Manual position override (for manual layout mode) */
+  layout?: RepositoryLayoutData;
+
+  /** Whether this repository is pinned */
+  pinned?: boolean;
+
+  /** User notes about this repository */
+  notes?: string;
+
+  /** Allow additional metadata */
+  [key: string]: unknown;
+}

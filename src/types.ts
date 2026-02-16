@@ -108,8 +108,8 @@ export interface Collection {
   updatedAt: number;
   /** Optional path hint for clone suggestions */
   suggestedClonePath?: string;
-  /** Extensible metadata */
-  metadata?: Record<string, unknown>;
+  /** Collection metadata with region and map configuration */
+  metadata?: CollectionMetadata;
 }
 
 /**
@@ -125,14 +125,8 @@ export interface CollectionMembership {
   collectionId: string;
   /** Unix timestamp when added */
   addedAt: number;
-  /** Collection-specific metadata for this repository */
-  metadata?: {
-    /** Pin to top of collection */
-    pinned?: boolean;
-    /** Collection-specific notes */
-    notes?: string;
-    [key: string]: unknown;
-  };
+  /** Collection-specific metadata with region and layout info */
+  metadata?: CollectionMembershipMetadata;
 }
 
 /**

@@ -314,9 +314,6 @@ export interface CollectionMetadata {
   /** Custom regions defined by the user */
   customRegions?: CustomRegion[];
 
-  /** Layout mode: 'auto' = age-based, 'manual' = user-defined regions */
-  layoutMode?: 'auto' | 'manual';
-
   /** Map visualization configuration */
   map?: CollectionMapMetadata;
 
@@ -325,16 +322,15 @@ export interface CollectionMetadata {
 }
 
 /**
- * Manual layout position data for repositories
+ * Layout position data for repositories
  * Stored in CollectionMembership.metadata.layout
+ * Once set, positions are persisted to prevent drift
  */
 export interface RepositoryLayoutData {
   /** Grid X coordinate */
   gridX: number;
   /** Grid Y coordinate */
   gridY: number;
-  /** Whether position was manually set */
-  isManuallyPositioned: boolean;
 }
 
 /**

@@ -1,0 +1,536 @@
+{
+  "nodes": [
+    {
+      "id": "collection-create-started",
+      "type": "text",
+      "text": "# Collection Create Started\n\nEmitted when collection creation begins\n\n**Attributes:**\n- `input.name` (required): Collection name\n- `input.description`: Collection description\n- `storage.backend` (required): Storage backend type (github, localStorage, node, inmemory)",
+      "x": -38,
+      "y": -273,
+      "width": 250,
+      "height": 150,
+      "color": "#3b82f6",
+      "pv": {
+        "event": {
+          "name": "collection.create.started",
+          "attributes": {
+            "input.name": {
+              "type": "string",
+              "required": true
+            },
+            "input.description": {
+              "type": "string",
+              "required": false
+            },
+            "storage.backend": {
+              "type": "string",
+              "required": true
+            }
+          }
+        },
+        "status": "draft",
+        "sources": [
+          "src/CollectionStorageAdapter.ts"
+        ],
+        "otel": {
+          "kind": "event",
+          "category": "lifecycle"
+        }
+      }
+    },
+    {
+      "id": "collection-create-complete",
+      "type": "text",
+      "text": "# Collection Created\n\nEmitted when collection is successfully created\n\n**Attributes:**\n- `output.collectionId` (required): Generated collection ID\n- `output.name` (required): Collection name\n- `duration.ms`: Operation duration",
+      "x": 265,
+      "y": -161,
+      "width": 250,
+      "height": 150,
+      "color": "#10b981",
+      "pv": {
+        "event": {
+          "name": "collection.create.complete",
+          "attributes": {
+            "output.collectionId": {
+              "type": "string",
+              "required": true
+            },
+            "output.name": {
+              "type": "string",
+              "required": true
+            },
+            "duration.ms": {
+              "type": "number",
+              "required": false
+            }
+          }
+        },
+        "status": "draft",
+        "sources": [
+          "src/CollectionStorageAdapter.ts"
+        ],
+        "otel": {
+          "kind": "event",
+          "category": "lifecycle"
+        }
+      }
+    },
+    {
+      "id": "collection-create-error",
+      "type": "text",
+      "text": "# Collection Create Failed\n\nEmitted when collection creation fails\n\n**Attributes:**\n- `error.type` (required): Error type\n- `error.message` (required): Error message\n- `error.stage`: Stage where error occurred (validation, write, etc.)",
+      "x": 261,
+      "y": -363,
+      "width": 250,
+      "height": 150,
+      "color": "#ef4444",
+      "pv": {
+        "event": {
+          "name": "collection.create.error",
+          "attributes": {
+            "error.type": {
+              "type": "string",
+              "required": true
+            },
+            "error.message": {
+              "type": "string",
+              "required": true
+            },
+            "error.stage": {
+              "type": "string",
+              "required": false
+            }
+          }
+        },
+        "status": "draft",
+        "sources": [
+          "src/CollectionStorageAdapter.ts"
+        ],
+        "otel": {
+          "kind": "event",
+          "category": "error"
+        }
+      }
+    },
+    {
+      "id": "repository-add-started",
+      "type": "text",
+      "text": "# Add Repository Started\n\nEmitted when adding repository to collection begins\n\n**Attributes:**\n- `input.collectionId` (required): Target collection ID\n- `input.repositoryId` (required): Repository to add\n- `input.hasMetadata`: Whether metadata is provided",
+      "x": -39,
+      "y": 136,
+      "width": 250,
+      "height": 150,
+      "color": "#3b82f6",
+      "pv": {
+        "event": {
+          "name": "repository.add.started",
+          "attributes": {
+            "input.collectionId": {
+              "type": "string",
+              "required": true
+            },
+            "input.repositoryId": {
+              "type": "string",
+              "required": true
+            },
+            "input.hasMetadata": {
+              "type": "boolean",
+              "required": false
+            }
+          }
+        },
+        "status": "draft",
+        "sources": [
+          "src/CollectionStorageAdapter.ts"
+        ],
+        "otel": {
+          "kind": "event",
+          "category": "lifecycle"
+        }
+      }
+    },
+    {
+      "id": "repository-add-complete",
+      "type": "text",
+      "text": "# Repository Added\n\nEmitted when repository is successfully added to collection\n\n**Attributes:**\n- `output.collectionId` (required): Collection ID\n- `output.repositoryId` (required): Repository ID\n- `output.alreadyExisted`: Whether membership already existed\n- `duration.ms`: Operation duration",
+      "x": 259,
+      "y": 28,
+      "width": 250,
+      "height": 150,
+      "color": "#10b981",
+      "pv": {
+        "event": {
+          "name": "repository.add.complete",
+          "attributes": {
+            "output.collectionId": {
+              "type": "string",
+              "required": true
+            },
+            "output.repositoryId": {
+              "type": "string",
+              "required": true
+            },
+            "output.alreadyExisted": {
+              "type": "boolean",
+              "required": false
+            },
+            "duration.ms": {
+              "type": "number",
+              "required": false
+            }
+          }
+        },
+        "status": "draft",
+        "sources": [
+          "src/CollectionStorageAdapter.ts"
+        ],
+        "otel": {
+          "kind": "event",
+          "category": "lifecycle"
+        }
+      }
+    },
+    {
+      "id": "repository-add-error",
+      "type": "text",
+      "text": "# Add Repository Failed\n\nEmitted when adding repository fails\n\n**Attributes:**\n- `error.type` (required): Error type\n- `error.message` (required): Error message\n- `error.collectionNotFound`: Whether collection was not found",
+      "x": 257,
+      "y": 269,
+      "width": 250,
+      "height": 150,
+      "color": "#ef4444",
+      "pv": {
+        "event": {
+          "name": "repository.add.error",
+          "attributes": {
+            "error.type": {
+              "type": "string",
+              "required": true
+            },
+            "error.message": {
+              "type": "string",
+              "required": true
+            },
+            "error.collectionNotFound": {
+              "type": "boolean",
+              "required": false
+            }
+          }
+        },
+        "status": "draft",
+        "sources": [
+          "src/CollectionStorageAdapter.ts"
+        ],
+        "otel": {
+          "kind": "event",
+          "category": "error"
+        }
+      }
+    },
+    {
+      "id": "import-started",
+      "type": "text",
+      "text": "# Import Started\n\nEmitted when import operation begins\n\n**Attributes:**\n- `input.collectionsCount` (required): Number of collections to import\n- `input.membershipsCount` (required): Number of memberships to import\n- `input.strategy` (required): Import strategy (replace, merge, merge-update)",
+      "x": -44,
+      "y": 500,
+      "width": 250,
+      "height": 150,
+      "color": "#3b82f6",
+      "pv": {
+        "event": {
+          "name": "import.started",
+          "attributes": {
+            "input.collectionsCount": {
+              "type": "number",
+              "required": true
+            },
+            "input.membershipsCount": {
+              "type": "number",
+              "required": true
+            },
+            "input.strategy": {
+              "type": "string",
+              "required": true
+            }
+          }
+        },
+        "status": "draft",
+        "sources": [
+          "src/CollectionStorageAdapter.ts"
+        ],
+        "otel": {
+          "kind": "event",
+          "category": "lifecycle"
+        }
+      }
+    },
+    {
+      "id": "import-complete",
+      "type": "text",
+      "text": "# Import Complete\n\nEmitted when import succeeds\n\n**Attributes:**\n- `result.collectionsImported` (required): Collections imported/added\n- `result.membershipsImported` (required): Memberships imported/added\n- `result.collectionsUpdated`: Collections updated (merge-update only)\n- `duration.ms`: Operation duration",
+      "x": 252,
+      "y": 441,
+      "width": 250,
+      "height": 150,
+      "color": "#10b981",
+      "pv": {
+        "event": {
+          "name": "import.complete",
+          "attributes": {
+            "result.collectionsImported": {
+              "type": "number",
+              "required": true
+            },
+            "result.membershipsImported": {
+              "type": "number",
+              "required": true
+            },
+            "result.collectionsUpdated": {
+              "type": "number",
+              "required": false
+            },
+            "duration.ms": {
+              "type": "number",
+              "required": false
+            }
+          }
+        },
+        "status": "draft",
+        "sources": [
+          "src/CollectionStorageAdapter.ts"
+        ],
+        "otel": {
+          "kind": "event",
+          "category": "lifecycle"
+        }
+      }
+    },
+    {
+      "id": "import-error",
+      "type": "text",
+      "text": "# Import Failed\n\nEmitted when import fails\n\n**Attributes:**\n- `error.type` (required): Error type\n- `error.message` (required): Error message\n- `error.stage`: Stage where error occurred (read, merge, write)",
+      "x": 252,
+      "y": 614,
+      "width": 250,
+      "height": 150,
+      "color": "#ef4444",
+      "pv": {
+        "event": {
+          "name": "import.error",
+          "attributes": {
+            "error.type": {
+              "type": "string",
+              "required": true
+            },
+            "error.message": {
+              "type": "string",
+              "required": true
+            },
+            "error.stage": {
+              "type": "string",
+              "required": false
+            }
+          }
+        },
+        "status": "draft",
+        "sources": [
+          "src/CollectionStorageAdapter.ts"
+        ],
+        "otel": {
+          "kind": "event",
+          "category": "error"
+        }
+      }
+    },
+    {
+      "id": "export-started",
+      "type": "text",
+      "text": "# Export Started\n\nEmitted when export operation begins",
+      "x": -52,
+      "y": 901,
+      "width": 250,
+      "height": 150,
+      "color": "#3b82f6",
+      "pv": {
+        "event": {
+          "name": "export.started",
+          "attributes": {}
+        },
+        "status": "draft",
+        "sources": [
+          "src/CollectionStorageAdapter.ts"
+        ],
+        "otel": {
+          "kind": "event",
+          "category": "lifecycle"
+        }
+      }
+    },
+    {
+      "id": "export-complete",
+      "type": "text",
+      "text": "# Export Complete\n\nEmitted when export succeeds\n\n**Attributes:**\n- `output.collectionsCount` (required): Number of collections exported\n- `output.membershipsCount` (required): Number of memberships exported\n- `duration.ms`: Operation duration",
+      "x": 277,
+      "y": 834,
+      "width": 250,
+      "height": 150,
+      "color": "#10b981",
+      "pv": {
+        "event": {
+          "name": "export.complete",
+          "attributes": {
+            "output.collectionsCount": {
+              "type": "number",
+              "required": true
+            },
+            "output.membershipsCount": {
+              "type": "number",
+              "required": true
+            },
+            "duration.ms": {
+              "type": "number",
+              "required": false
+            }
+          }
+        },
+        "status": "draft",
+        "sources": [
+          "src/CollectionStorageAdapter.ts"
+        ],
+        "otel": {
+          "kind": "event",
+          "category": "lifecycle"
+        }
+      }
+    },
+    {
+      "id": "export-error",
+      "type": "text",
+      "text": "# Export Failed\n\nEmitted when export fails\n\n**Attributes:**\n- `error.type` (required): Error type\n- `error.message` (required): Error message",
+      "x": 277,
+      "y": 1041,
+      "width": 250,
+      "height": 150,
+      "color": "#ef4444",
+      "pv": {
+        "event": {
+          "name": "export.error",
+          "attributes": {
+            "error.type": {
+              "type": "string",
+              "required": true
+            },
+            "error.message": {
+              "type": "string",
+              "required": true
+            }
+          }
+        },
+        "status": "draft",
+        "sources": [
+          "src/CollectionStorageAdapter.ts"
+        ],
+        "otel": {
+          "kind": "event",
+          "category": "error"
+        }
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-collection-create-success",
+      "fromNode": "collection-create-started",
+      "toNode": "collection-create-complete",
+      "fromSide": "right",
+      "toSide": "left",
+      "pv": {
+        "edgeType": "success"
+      }
+    },
+    {
+      "id": "edge-collection-create-error",
+      "fromNode": "collection-create-started",
+      "toNode": "collection-create-error",
+      "fromSide": "right",
+      "toSide": "left",
+      "pv": {
+        "edgeType": "error"
+      }
+    },
+    {
+      "id": "edge-repository-add-success",
+      "fromNode": "repository-add-started",
+      "toNode": "repository-add-complete",
+      "fromSide": "right",
+      "toSide": "left",
+      "pv": {
+        "edgeType": "success"
+      }
+    },
+    {
+      "id": "edge-repository-add-error",
+      "fromNode": "repository-add-started",
+      "toNode": "repository-add-error",
+      "fromSide": "right",
+      "toSide": "left",
+      "pv": {
+        "edgeType": "error"
+      }
+    },
+    {
+      "id": "edge-import-success",
+      "fromNode": "import-started",
+      "toNode": "import-complete",
+      "fromSide": "right",
+      "toSide": "left",
+      "pv": {
+        "edgeType": "success"
+      }
+    },
+    {
+      "id": "edge-import-error",
+      "fromNode": "import-started",
+      "toNode": "import-error",
+      "fromSide": "right",
+      "toSide": "left",
+      "pv": {
+        "edgeType": "error"
+      }
+    },
+    {
+      "id": "edge-export-success",
+      "fromNode": "export-started",
+      "toNode": "export-complete",
+      "fromSide": "right",
+      "toSide": "left",
+      "pv": {
+        "edgeType": "success"
+      }
+    },
+    {
+      "id": "edge-export-error",
+      "fromNode": "export-started",
+      "toNode": "export-error",
+      "fromSide": "right",
+      "toSide": "left",
+      "pv": {
+        "edgeType": "error"
+      }
+    }
+  ],
+  "pv": {
+    "name": "Collection Storage",
+    "version": "1.0.0",
+    "markdown": ".principal-views/collection-storage/collection-storage.md",
+    "edgeTypes": {
+      "success": {
+        "color": "#10b981",
+        "label": "Success"
+      },
+      "error": {
+        "color": "#ef4444",
+        "label": "Error"
+      }
+    }
+  }
+}

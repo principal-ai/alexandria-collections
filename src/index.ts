@@ -14,3 +14,6 @@ export type {
   RepositoryTraits,
   RepositoryProvider,
 } from "./types";
+
+export { CollectionStorageAdapter } from "./CollectionStorageAdapter";
+export type { CollectionStorageOptions } from "./CollectionStorageAdapter";

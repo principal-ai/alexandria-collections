@@ -1,0 +1,23 @@
+{
+  "version": "1.0.0",
+  "canvas": ".principal-views/collection-storage/collection-storage.otel.canvas",
+  "name": "Collection Deletion",
+  "description": "Deleting a collection with cascade delete of all memberships",
+  "mode": "span-tree",
+  "spanPattern": "collection.delete|storage.file.*",
+  "scenarios": [
+    {
+      "id": "delete-collection-with-cascade",
+      "priority": 1,
+      "description": "User deletes a collection, triggering cascade deletion of memberships",
+      "template": {
+        "summary": "Deleted collection {{input.collectionId}} and {{output.membershipsCascadeDeleted}} memberships",
+        "events": {
+          "collection.delete": "Deleted collection {{input.collectionId}} with {{output.membershipsCascadeDeleted}} cascade-deleted memberships in {{duration.ms}}ms",
+          "storage.file.read": "Read {{file.name}}",
+          "storage.file.write": "Wrote {{items.count}} items to {{file.name}}"
+        }
+      }
+    }
+  ]
+}

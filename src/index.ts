@@ -17,3 +17,6 @@ export type {
 
 export { CollectionStorageAdapter } from "./CollectionStorageAdapter";
 export type { CollectionStorageOptions } from "./CollectionStorageAdapter";
+
+// OpenTelemetry utilities
+export { getTracer, shutdownTelemetry, TRACER_NAME } from "./telemetry";

@@ -1,0 +1,24 @@
+{
+  "version": "1.0.0",
+  "canvas": ".principal-views/collection-storage/collection-storage.otel.canvas",
+  "name": "Collection Setup",
+  "description": "Creating a new collection and adding the first repository",
+  "mode": "span-tree",
+  "spanPattern": "collection.create|repository.add|storage.file.*",
+  "scenarios": [
+    {
+      "id": "setup-new-collection",
+      "priority": 1,
+      "description": "User creates a collection and adds first repository",
+      "template": {
+        "summary": "Created collection \"{{output.name}}\" and added repository {{output.repositoryId}}",
+        "events": {
+          "collection.create": "Created collection \"{{input.name}}\" (ID: {{output.collectionId}}) in {{duration.ms}}ms",
+          "storage.file.read": "Read {{file.name}} ({{result.count}} items)",
+          "storage.file.write": "Wrote {{items.count}} items to {{file.name}}",
+          "repository.add": "Added repository {{input.repositoryId}} to collection {{input.collectionId}} in {{duration.ms}}ms"
+        }
+      }
+    }
+  ]
+}

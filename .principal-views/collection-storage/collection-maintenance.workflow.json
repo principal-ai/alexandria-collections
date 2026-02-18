@@ -1,0 +1,50 @@
+{
+  "version": "1.0.0",
+  "canvas": ".principal-views/collection-storage/collection-storage.otel.canvas",
+  "name": "Collection Maintenance",
+  "description": "Updating collections and managing repository memberships",
+  "mode": "span-tree",
+  "spanPattern": "collection.update|repository.add|repository.remove|membership.metadata.update|storage.file.*",
+  "scenarios": [
+    {
+      "id": "update-collection-metadata",
+      "priority": 1,
+      "description": "User updates collection properties",
+      "template": {
+        "summary": "Updated collection {{input.collectionId}}",
+        "events": {
+          "collection.update": "Updated collection {{input.collectionId}} (updated at: {{output.updatedAt}}) in {{duration.ms}}ms",
+          "storage.file.read": "Read {{file.name}}",
+          "storage.file.write": "Wrote {{items.count}} items to {{file.name}}"
+        }
+      }
+    },
+    {
+      "id": "manage-repositories",
+      "priority": 2,
+      "description": "User adds/removes repositories from collection",
+      "template": {
+        "summary": "Managed repositories for collection",
+        "events": {
+          "repository.add": "Added repository {{input.repositoryId}} to collection {{input.collectionId}}{{#output.alreadyExisted}} (already existed){{/output.alreadyExisted}}",
+          "repository.remove": "Removed repository {{input.repositoryId}} from collection {{input.collectionId}}{{#output.wasPresent}} (was present){{/output.wasPresent}}",
+          "storage.file.read": "Read {{file.name}}",
+          "storage.file.write": "Wrote {{items.count}} items to {{file.name}}"
+        }
+      }
+    },
+    {
+      "id": "update-membership-metadata",
+      "priority": 3,
+      "description": "User updates metadata on repository membership",
+      "template": {
+        "summary": "Updated membership metadata for {{input.repositoryId}} in {{input.collectionId}}",
+        "events": {
+          "membership.metadata.update": "Updated metadata (keys: {{input.metadataKeys}}) for repository {{input.repositoryId}} in collection {{input.collectionId}} in {{duration.ms}}ms",
+          "storage.file.read": "Read {{file.name}}",
+          "storage.file.write": "Wrote {{items.count}} items to {{file.name}}"
+        }
+      }
+    }
+  ]
+}

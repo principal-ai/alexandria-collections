@@ -1,0 +1,34 @@
+{
+  "version": "1.0.0",
+  "canvas": ".principal-views/collection-storage/collection-storage.otel.canvas",
+  "name": "Query Operations",
+  "description": "Reading collections and memberships without modification",
+  "mode": "span-tree",
+  "spanPattern": "collection.get|membership.get|storage.file.read",
+  "scenarios": [
+    {
+      "id": "query-collections",
+      "priority": 1,
+      "description": "User queries for collections",
+      "template": {
+        "summary": "Retrieved {{output.count}} collection(s){{#input.collectionId}} (ID: {{input.collectionId}}){{/input.collectionId}}",
+        "events": {
+          "collection.get": "Retrieved {{output.count}} collection(s){{#input.collectionId}} matching ID {{input.collectionId}}{{/input.collectionId}} in {{duration.ms}}ms",
+          "storage.file.read": "Read {{file.name}}"
+        }
+      }
+    },
+    {
+      "id": "query-memberships",
+      "priority": 2,
+      "description": "User queries for repository memberships",
+      "template": {
+        "summary": "Retrieved {{output.count}} membership(s){{#input.collectionId}} for collection {{input.collectionId}}{{/input.collectionId}}{{#input.repositoryId}} for repository {{input.repositoryId}}{{/input.repositoryId}}",
+        "events": {
+          "membership.get": "Retrieved {{output.count}} membership(s){{#input.collectionId}} for collection {{input.collectionId}}{{/input.collectionId}}{{#input.repositoryId}} for repository {{input.repositoryId}}{{/input.repositoryId}} in {{duration.ms}}ms",
+          "storage.file.read": "Read {{file.name}}"
+        }
+      }
+    }
+  ]
+}

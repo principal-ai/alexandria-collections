@@ -1,0 +1,88 @@
+{
+  "version": "1.0.0",
+  "canvas": ".principal-views/collection-storage/collection-storage.otel.canvas",
+  "name": "Region and Layout Management",
+  "description": "Managing custom regions and repository layout positions in collections",
+  "mode": "span-tree",
+  "spanPattern": "region.*|repository.region.assign|repository.position.update|layout.batch.initialize|storage.file.*",
+  "scenarios": [
+    {
+      "id": "create-region",
+      "priority": 1,
+      "description": "User creates a custom region in a collection",
+      "template": {
+        "summary": "Created region \"{{input.regionName}}\" in collection {{input.collectionId}}",
+        "events": {
+          "region.create": "Created region \"{{input.regionName}}\" (ID: {{output.regionId}}) in collection {{input.collectionId}} in {{duration.ms}}ms",
+          "storage.file.read": "Read {{file.name}}",
+          "storage.file.write": "Wrote collection with {{members.count}} members to {{file.name}}"
+        }
+      }
+    },
+    {
+      "id": "update-region",
+      "priority": 2,
+      "description": "User updates properties of an existing region",
+      "template": {
+        "summary": "Updated region {{input.regionId}} in collection {{input.collectionId}}",
+        "events": {
+          "region.update": "Updated region {{input.regionId}} in collection {{input.collectionId}} in {{duration.ms}}ms",
+          "storage.file.read": "Read {{file.name}}",
+          "storage.file.write": "Wrote collection with {{members.count}} members to {{file.name}}"
+        }
+      }
+    },
+    {
+      "id": "delete-region-with-cleanup",
+      "priority": 3,
+      "description": "User deletes a region and cleans up member assignments",
+      "template": {
+        "summary": "Deleted region {{input.regionId}} and cleaned up {{output.assignmentsCleaned}} assignments",
+        "events": {
+          "region.delete": "Deleted region {{input.regionId}} from collection {{input.collectionId}}{{#output.assignmentsCleaned}} (cleaned {{output.assignmentsCleaned}} assignments){{/output.assignmentsCleaned}} in {{duration.ms}}ms",
+          "storage.file.read": "Read {{file.name}}",
+          "storage.file.write": "Wrote collection with {{members.count}} members to {{file.name}}"
+        }
+      }
+    },
+    {
+      "id": "assign-repository-to-region",
+      "priority": 4,
+      "description": "User assigns a repository to a custom region",
+      "template": {
+        "summary": "Assigned repository {{input.repositoryId}} to region {{input.regionId}}",
+        "events": {
+          "repository.region.assign": "Assigned repository {{input.repositoryId}} to region {{input.regionId}} in collection {{input.collectionId}} in {{duration.ms}}ms",
+          "storage.file.read": "Read {{file.name}}",
+          "storage.file.write": "Wrote collection with {{members.count}} members to {{file.name}}"
+        }
+      }
+    },
+    {
+      "id": "update-repository-position",
+      "priority": 5,
+      "description": "User updates repository position in the overworld map",
+      "template": {
+        "summary": "Updated position for {{input.repositoryId}} to ({{input.gridX}}, {{input.gridY}})",
+        "events": {
+          "repository.position.update": "Updated position for repository {{input.repositoryId}} to grid position ({{input.gridX}}, {{input.gridY}}) in collection {{input.collectionId}} in {{duration.ms}}ms",
+          "storage.file.read": "Read {{file.name}}",
+          "storage.file.write": "Wrote collection with {{members.count}} members to {{file.name}}"
+        }
+      }
+    },
+    {
+      "id": "batch-initialize-layout",
+      "priority": 6,
+      "description": "System batch initializes layout (regions, assignments, positions) to reduce re-renders",
+      "template": {
+        "summary": "Batch initialized layout: {{input.regionsCount}} regions, {{input.assignmentsCount}} assignments, {{input.positionsCount}} positions",
+        "events": {
+          "layout.batch.initialize": "Batch initialized layout for collection {{input.collectionId}}{{#input.regionsCount}} ({{input.regionsCount}} regions{{/input.regionsCount}}{{#input.assignmentsCount}}, {{input.assignmentsCount}} assignments{{/input.assignmentsCount}}{{#input.positionsCount}}, {{input.positionsCount}} positions{{/input.positionsCount}}) in {{duration.ms}}ms",
+          "storage.file.read": "Read {{file.name}}",
+          "storage.file.write": "Wrote collection with {{members.count}} members to {{file.name}}"
+        }
+      }
+    }
+  ]
+}

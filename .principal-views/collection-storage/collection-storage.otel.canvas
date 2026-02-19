@@ -477,42 +477,6 @@
       }
     },
     {
-      "id": "directory-read",
-      "type": "text",
-      "text": "# Directory Read\n\nEmitted when reading collections directory\n\n**Used by:** readAllCollectionFiles()",
-      "x": -613,
-      "y": 1056,
-      "width": 280,
-      "height": 120,
-      "color": "#8b5cf6",
-      "pv": {
-        "event": {
-          "name": "storage.directory.read",
-          "attributes": {
-            "directory.name": {
-              "type": "string",
-              "required": true
-            },
-            "result.count": {
-              "type": "number",
-              "required": true
-            }
-          }
-        },
-        "status": "implemented",
-        "sources": [
-          "src/CollectionStorageAdapter.ts"
-        ],
-        "otel": {
-          "kind": "event",
-          "category": "internal",
-          "files": [
-            "src/CollectionStorageAdapter.ts"
-          ]
-        }
-      }
-    },
-    {
       "id": "create-region",
       "type": "text",
       "text": "# createRegion()\n\n**Flow:**\n1. Read collection file\n2. Generate region ID\n3. Add to metadata.customRegions array\n4. Write collection file",

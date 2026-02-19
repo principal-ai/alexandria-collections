@@ -24,7 +24,7 @@
   },
   "peerDependencies": {
     "@principal-ai/codebase-composition": "^0.2.0",
-    "@principal-ai/repository-abstraction": "^0.1.0"
+    "@principal-ai/repository-abstraction": ">=0.1.0"
   },
   "devDependencies": {
     "@opentelemetry/exporter-trace-otlp-http": "^0.49.1",

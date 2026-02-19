@@ -475,6 +475,314 @@
           ]
         }
       }
+    },
+    {
+      "id": "directory-read",
+      "type": "text",
+      "text": "# Directory Read\n\nEmitted when reading collections directory\n\n**Used by:** readAllCollectionFiles()",
+      "x": -613,
+      "y": 1056,
+      "width": 280,
+      "height": 120,
+      "color": "#8b5cf6",
+      "pv": {
+        "event": {
+          "name": "storage.directory.read",
+          "attributes": {
+            "directory.name": {
+              "type": "string",
+              "required": true
+            },
+            "result.count": {
+              "type": "number",
+              "required": true
+            }
+          }
+        },
+        "status": "implemented",
+        "sources": [
+          "src/CollectionStorageAdapter.ts"
+        ],
+        "otel": {
+          "kind": "event",
+          "category": "internal",
+          "files": [
+            "src/CollectionStorageAdapter.ts"
+          ]
+        }
+      }
+    },
+    {
+      "id": "create-region",
+      "type": "text",
+      "text": "# createRegion()\n\n**Flow:**\n1. Read collection file\n2. Generate region ID\n3. Add to metadata.customRegions array\n4. Write collection file",
+      "x": 650,
+      "y": 153,
+      "width": 280,
+      "height": 150,
+      "color": "#a855f7",
+      "pv": {
+        "event": {
+          "name": "region.create",
+          "attributes": {
+            "input.collectionId": {
+              "type": "string",
+              "required": true
+            },
+            "input.regionName": {
+              "type": "string",
+              "required": true
+            },
+            "output.regionId": {
+              "type": "string",
+              "required": true
+            },
+            "duration.ms": {
+              "type": "number",
+              "required": false
+            }
+          }
+        },
+        "status": "implemented",
+        "sources": [
+          "src/CollectionStorageAdapter.ts"
+        ],
+        "otel": {
+          "kind": "span",
+          "category": "operation",
+          "files": [
+            "src/CollectionStorageAdapter.ts"
+          ]
+        }
+      }
+    },
+    {
+      "id": "update-region",
+      "type": "text",
+      "text": "# updateRegion()\n\n**Flow:**\n1. Read collection file\n2. Find region in metadata.customRegions\n3. Merge updates (preserving id, createdAt)\n4. Write collection file",
+      "x": 650,
+      "y": 343,
+      "width": 280,
+      "height": 150,
+      "color": "#a855f7",
+      "pv": {
+        "event": {
+          "name": "region.update",
+          "attributes": {
+            "input.collectionId": {
+              "type": "string",
+              "required": true
+            },
+            "input.regionId": {
+              "type": "string",
+              "required": true
+            },
+            "duration.ms": {
+              "type": "number",
+              "required": false
+            }
+          }
+        },
+        "status": "implemented",
+        "sources": [
+          "src/CollectionStorageAdapter.ts"
+        ],
+        "otel": {
+          "kind": "span",
+          "category": "operation",
+          "files": [
+            "src/CollectionStorageAdapter.ts"
+          ]
+        }
+      }
+    },
+    {
+      "id": "delete-region",
+      "type": "text",
+      "text": "# deleteRegion()\n\n**Flow:**\n1. Read collection file\n2. Remove from metadata.customRegions\n3. Optionally cleanup regionId from members\n4. Write collection file",
+      "x": 650,
+      "y": 533,
+      "width": 280,
+      "height": 150,
+      "color": "#a855f7",
+      "pv": {
+        "event": {
+          "name": "region.delete",
+          "attributes": {
+            "input.collectionId": {
+              "type": "string",
+              "required": true
+            },
+            "input.regionId": {
+              "type": "string",
+              "required": true
+            },
+            "input.cleanupAssignments": {
+              "type": "boolean",
+              "required": false
+            },
+            "output.assignmentsCleaned": {
+              "type": "number",
+              "required": false
+            },
+            "duration.ms": {
+              "type": "number",
+              "required": false
+            }
+          }
+        },
+        "status": "implemented",
+        "sources": [
+          "src/CollectionStorageAdapter.ts"
+        ],
+        "otel": {
+          "kind": "span",
+          "category": "operation",
+          "files": [
+            "src/CollectionStorageAdapter.ts"
+          ]
+        }
+      }
+    },
+    {
+      "id": "assign-region",
+      "type": "text",
+      "text": "# assignRepositoryToRegion()\n\n**Flow:**\n1. Read collection file\n2. Verify region exists\n3. Find member, set metadata.regionId\n4. Write collection file",
+      "x": 980,
+      "y": 153,
+      "width": 280,
+      "height": 150,
+      "color": "#ec4899",
+      "pv": {
+        "event": {
+          "name": "repository.region.assign",
+          "attributes": {
+            "input.collectionId": {
+              "type": "string",
+              "required": true
+            },
+            "input.repositoryId": {
+              "type": "string",
+              "required": true
+            },
+            "input.regionId": {
+              "type": "string",
+              "required": true
+            },
+            "duration.ms": {
+              "type": "number",
+              "required": false
+            }
+          }
+        },
+        "status": "implemented",
+        "sources": [
+          "src/CollectionStorageAdapter.ts"
+        ],
+        "otel": {
+          "kind": "span",
+          "category": "operation",
+          "files": [
+            "src/CollectionStorageAdapter.ts"
+          ]
+        }
+      }
+    },
+    {
+      "id": "update-position",
+      "type": "text",
+      "text": "# updateRepositoryPosition()\n\n**Flow:**\n1. Read collection file\n2. Find member in array\n3. Set metadata.layout (gridX, gridY)\n4. Write collection file",
+      "x": 980,
+      "y": 343,
+      "width": 280,
+      "height": 150,
+      "color": "#ec4899",
+      "pv": {
+        "event": {
+          "name": "repository.position.update",
+          "attributes": {
+            "input.collectionId": {
+              "type": "string",
+              "required": true
+            },
+            "input.repositoryId": {
+              "type": "string",
+              "required": true
+            },
+            "input.gridX": {
+              "type": "number",
+              "required": true
+            },
+            "input.gridY": {
+              "type": "number",
+              "required": true
+            },
+            "duration.ms": {
+              "type": "number",
+              "required": false
+            }
+          }
+        },
+        "status": "implemented",
+        "sources": [
+          "src/CollectionStorageAdapter.ts"
+        ],
+        "otel": {
+          "kind": "span",
+          "category": "operation",
+          "files": [
+            "src/CollectionStorageAdapter.ts"
+          ]
+        }
+      }
+    },
+    {
+      "id": "batch-initialize-layout",
+      "type": "text",
+      "text": "# batchInitializeLayout()\n\n**Flow:**\n1. Read collection file\n2. Set metadata.customRegions (if provided)\n3. Apply assignments to members\n4. Apply positions to members\n5. Write collection file once\n\n**Purpose:** Reduces re-renders from N operations to 1",
+      "x": 980,
+      "y": 533,
+      "width": 280,
+      "height": 200,
+      "color": "#f59e0b",
+      "pv": {
+        "event": {
+          "name": "layout.batch.initialize",
+          "attributes": {
+            "input.collectionId": {
+              "type": "string",
+              "required": true
+            },
+            "input.regionsCount": {
+              "type": "number",
+              "required": false
+            },
+            "input.assignmentsCount": {
+              "type": "number",
+              "required": false
+            },
+            "input.positionsCount": {
+              "type": "number",
+              "required": false
+            },
+            "duration.ms": {
+              "type": "number",
+              "required": false
+            }
+          }
+        },
+        "status": "implemented",
+        "sources": [
+          "src/CollectionStorageAdapter.ts"
+        ],
+        "otel": {
+          "kind": "span",
+          "category": "operation",
+          "files": [
+            "src/CollectionStorageAdapter.ts"
+          ]
+        }
+      }
     }
   ],
   "edges": [
@@ -637,12 +945,132 @@
       "pv": {
         "edgeType": "internal"
       }
+    },
+    {
+      "id": "create-region-reads",
+      "fromNode": "create-region",
+      "toNode": "read-collection-file",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "pv": {
+        "edgeType": "read"
+      }
+    },
+    {
+      "id": "create-region-writes",
+      "fromNode": "create-region",
+      "toNode": "write-collection-file",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "pv": {
+        "edgeType": "write"
+      }
+    },
+    {
+      "id": "update-region-reads",
+      "fromNode": "update-region",
+      "toNode": "read-collection-file",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "pv": {
+        "edgeType": "read"
+      }
+    },
+    {
+      "id": "update-region-writes",
+      "fromNode": "update-region",
+      "toNode": "write-collection-file",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "pv": {
+        "edgeType": "write"
+      }
+    },
+    {
+      "id": "delete-region-reads",
+      "fromNode": "delete-region",
+      "toNode": "read-collection-file",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "pv": {
+        "edgeType": "read"
+      }
+    },
+    {
+      "id": "delete-region-writes",
+      "fromNode": "delete-region",
+      "toNode": "write-collection-file",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "pv": {
+        "edgeType": "write"
+      }
+    },
+    {
+      "id": "assign-region-reads",
+      "fromNode": "assign-region",
+      "toNode": "read-collection-file",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "pv": {
+        "edgeType": "read"
+      }
+    },
+    {
+      "id": "assign-region-writes",
+      "fromNode": "assign-region",
+      "toNode": "write-collection-file",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "pv": {
+        "edgeType": "write"
+      }
+    },
+    {
+      "id": "update-position-reads",
+      "fromNode": "update-position",
+      "toNode": "read-collection-file",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "pv": {
+        "edgeType": "read"
+      }
+    },
+    {
+      "id": "update-position-writes",
+      "fromNode": "update-position",
+      "toNode": "write-collection-file",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "pv": {
+        "edgeType": "write"
+      }
+    },
+    {
+      "id": "batch-layout-reads",
+      "fromNode": "batch-initialize-layout",
+      "toNode": "read-collection-file",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "pv": {
+        "edgeType": "read"
+      }
+    },
+    {
+      "id": "batch-layout-writes",
+      "fromNode": "batch-initialize-layout",
+      "toNode": "write-collection-file",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "pv": {
+        "edgeType": "write"
+      }
     }
   ],
   "pv": {
     "name": "Collection Storage Architecture",
-    "version": "2.0.0",
-    "description": "One file per collection with embedded memberships (collections/{id}.json)",
+    "version": "2.1.0",
+    "description": "One file per collection with embedded memberships (collections/{id}.json). Includes region management and layout positioning.",
     "markdown": ".principal-views/collection-storage/collection-storage.md",
     "edgeTypes": {
       "read": {

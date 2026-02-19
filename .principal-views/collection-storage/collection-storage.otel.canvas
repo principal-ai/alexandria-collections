@@ -1,13 +1,13 @@
 {
   "nodes": [
     {
-      "id": "read-collections-file",
+      "id": "read-collection-file",
       "type": "text",
-      "text": "# readCollectionsFile()\n\nReads and parses collections.json\n\n**Returns:** CollectionsData\n**Error handling:** Returns empty structure on error",
-      "x": -400,
-      "y": 800,
+      "text": "# readCollectionFile(id)\n\nReads and parses a single collection file: collections/{id}.json\n\n**Returns:** Collection | undefined\n**Error handling:** Returns undefined on error",
+      "x": -183,
+      "y": 854,
       "width": 280,
-      "height": 130,
+      "height": 150,
       "color": "#8b5cf6",
       "pv": {
         "event": {
@@ -21,7 +21,11 @@
               "type": "string",
               "required": true
             },
-            "result.count": {
+            "result.found": {
+              "type": "boolean",
+              "required": true
+            },
+            "result.memberCount": {
               "type": "number",
               "required": false
             }
@@ -34,18 +38,44 @@
         "otel": {
           "kind": "event",
           "category": "internal",
-          "files": ["src/CollectionStorageAdapter.ts"]
+          "files": [
+            "src/CollectionStorageAdapter.ts"
+          ]
         }
       }
     },
     {
-      "id": "write-collections-file",
+      "id": "read-all-collection-files",
       "type": "text",
-      "text": "# writeCollectionsFile()\n\nWrites collections array to collections.json\n\n**Input:** Collection[]\n**Format:** Pretty-printed JSON by default",
-      "x": -80,
-      "y": 800,
+      "text": "# readAllCollectionFiles()\n\nReads all .json files from collections/ directory\n\n**Returns:** Collection[]\n**Flow:** readdir → filter .json → readCollectionFile for each",
+      "x": -613,
+      "y": 856,
       "width": 280,
-      "height": 130,
+      "height": 150,
+      "color": "#8b5cf6",
+      "pv": {
+        "eventRef": "storage.file.read",
+        "status": "implemented",
+        "sources": [
+          "src/CollectionStorageAdapter.ts"
+        ],
+        "otel": {
+          "kind": "internal",
+          "category": "internal",
+          "files": [
+            "src/CollectionStorageAdapter.ts"
+          ]
+        }
+      }
+    },
+    {
+      "id": "write-collection-file",
+      "type": "text",
+      "text": "# writeCollectionFile(collection)\n\nWrites a collection (with embedded members) to collections/{id}.json\n\n**Format:** Pretty-printed JSON by default\n**Side effect:** Ensures collections/ dir exists",
+      "x": 259,
+      "y": 853,
+      "width": 280,
+      "height": 150,
       "color": "#8b5cf6",
       "pv": {
         "event": {
@@ -59,7 +89,7 @@
               "type": "string",
               "required": true
             },
-            "items.count": {
+            "members.count": {
               "type": "number",
               "required": true
             }
@@ -72,92 +102,42 @@
         "otel": {
           "kind": "event",
           "category": "internal",
-          "files": ["src/CollectionStorageAdapter.ts"]
+          "files": [
+            "src/CollectionStorageAdapter.ts"
+          ]
         }
       }
     },
     {
-      "id": "read-memberships-file",
+      "id": "delete-collection-file",
       "type": "text",
-      "text": "# readMembershipsFile()\n\nReads and parses collection-memberships.json\n\n**Returns:** CollectionMembershipsData\n**Error handling:** Returns empty structure on error",
-      "x": 240,
-      "y": 800,
+      "text": "# deleteCollectionFile(id)\n\nDeletes collections/{id}.json\n\n**Idempotent:** No-op if file doesn't exist",
+      "x": 653,
+      "y": 848,
       "width": 280,
       "height": 130,
       "color": "#8b5cf6",
       "pv": {
-        "event": {
-          "name": "storage.file.read",
-          "attributes": {
-            "file.name": {
-              "type": "string",
-              "required": true
-            },
-            "file.type": {
-              "type": "string",
-              "required": true
-            },
-            "result.count": {
-              "type": "number",
-              "required": false
-            }
-          }
-        },
+        "eventRef": "storage.file.write",
         "status": "implemented",
         "sources": [
           "src/CollectionStorageAdapter.ts"
         ],
         "otel": {
-          "kind": "event",
+          "kind": "internal",
           "category": "internal",
-          "files": ["src/CollectionStorageAdapter.ts"]
-        }
-      }
-    },
-    {
-      "id": "write-memberships-file",
-      "type": "text",
-      "text": "# writeMembershipsFile()\n\nWrites memberships array to collection-memberships.json\n\n**Input:** CollectionMembership[]\n**Format:** Pretty-printed JSON by default",
-      "x": 560,
-      "y": 800,
-      "width": 280,
-      "height": 130,
-      "color": "#8b5cf6",
-      "pv": {
-        "event": {
-          "name": "storage.file.write",
-          "attributes": {
-            "file.name": {
-              "type": "string",
-              "required": true
-            },
-            "file.type": {
-              "type": "string",
-              "required": true
-            },
-            "items.count": {
-              "type": "number",
-              "required": true
-            }
-          }
-        },
-        "status": "implemented",
-        "sources": [
-          "src/CollectionStorageAdapter.ts"
-        ],
-        "otel": {
-          "kind": "event",
-          "category": "internal",
-          "files": ["src/CollectionStorageAdapter.ts"]
+          "files": [
+            "src/CollectionStorageAdapter.ts"
+          ]
         }
       }
     },
     {
       "id": "create-collection",
       "type": "text",
-      "text": "# createCollection()\n\n**Flow:**\n1. Read collections\n2. Generate ID & timestamps\n3. Push to array\n4. Write collections",
-      "x": -554,
-      "y": 346,
+      "text": "# createCollection()\n\n**Flow:**\n1. Generate ID & timestamps\n2. Create collection with empty members array\n3. Write collection file",
+      "x": -149,
+      "y": 153,
       "width": 250,
       "height": 130,
       "color": "#3b82f6",
@@ -190,16 +170,18 @@
         "otel": {
           "kind": "span",
           "category": "operation",
-          "files": ["src/CollectionStorageAdapter.ts"]
+          "files": [
+            "src/CollectionStorageAdapter.ts"
+          ]
         }
       }
     },
     {
       "id": "update-collection",
       "type": "text",
-      "text": "# updateCollection()\n\n**Flow:**\n1. Read collections\n2. Find by ID (throws if not found)\n3. Merge updates\n4. Write collections",
-      "x": -127,
-      "y": 341,
+      "text": "# updateCollection()\n\n**Flow:**\n1. Read collection file\n2. Merge updates (preserving id, createdAt, members)\n3. Write collection file",
+      "x": -149,
+      "y": 333,
       "width": 250,
       "height": 130,
       "color": "#3b82f6",
@@ -232,16 +214,18 @@
         "otel": {
           "kind": "span",
           "category": "operation",
-          "files": ["src/CollectionStorageAdapter.ts"]
+          "files": [
+            "src/CollectionStorageAdapter.ts"
+          ]
         }
       }
     },
     {
       "id": "delete-collection",
       "type": "text",
-      "text": "# deleteCollection()\n\n**Flow:**\n1. Read collections\n2. Filter by ID (throws if not found)\n3. Write collections\n4. Cascade: Read memberships, filter, write",
-      "x": -392,
-      "y": 171,
+      "text": "# deleteCollection()\n\n**Flow:**\n1. Read collection file (throws if not found)\n2. Delete collection file\n3. Memberships cascade deleted automatically (embedded)",
+      "x": 41,
+      "y": -70,
       "width": 250,
       "height": 130,
       "color": "#3b82f6",
@@ -270,16 +254,18 @@
         "otel": {
           "kind": "span",
           "category": "operation",
-          "files": ["src/CollectionStorageAdapter.ts"]
+          "files": [
+            "src/CollectionStorageAdapter.ts"
+          ]
         }
       }
     },
     {
       "id": "get-collections",
       "type": "text",
-      "text": "# getCollections() / getCollection()\n\n**Flow:**\n1. Read collections\n2. Return all or find by ID",
-      "x": -37,
-      "y": 558,
+      "text": "# getCollections() / getCollection()\n\n**Flow:**\n- getCollections(): Read all collection files\n- getCollection(id): Read single collection file",
+      "x": -557,
+      "y": 592,
       "width": 250,
       "height": 100,
       "color": "#60a5fa",
@@ -308,16 +294,18 @@
         "otel": {
           "kind": "span",
           "category": "query",
-          "files": ["src/CollectionStorageAdapter.ts"]
+          "files": [
+            "src/CollectionStorageAdapter.ts"
+          ]
         }
       }
     },
     {
       "id": "add-repository",
       "type": "text",
-      "text": "# addRepository()\n\n**Flow:**\n1. Read collections (validate exists)\n2. Read memberships\n3. Check duplicate (return if exists)\n4. Push to array\n5. Write memberships",
-      "x": 423,
-      "y": 366,
+      "text": "# addRepository()\n\n**Flow:**\n1. Read collection file (validate exists)\n2. Check duplicate in members array (return if exists)\n3. Push to members array\n4. Write collection file",
+      "x": 254,
+      "y": 380,
       "width": 250,
       "height": 150,
       "color": "#10b981",
@@ -350,16 +338,18 @@
         "otel": {
           "kind": "span",
           "category": "operation",
-          "files": ["src/CollectionStorageAdapter.ts"]
+          "files": [
+            "src/CollectionStorageAdapter.ts"
+          ]
         }
       }
     },
     {
       "id": "remove-repository",
       "type": "text",
-      "text": "# removeRepository()\n\n**Flow:**\n1. Read memberships\n2. Filter by collection+repo ID\n3. Write memberships (idempotent)",
-      "x": 77,
-      "y": 216,
+      "text": "# removeRepository()\n\n**Flow:**\n1. Read collection file\n2. Filter members array by repo ID\n3. Write collection file (idempotent)",
+      "x": 256,
+      "y": 184,
       "width": 250,
       "height": 130,
       "color": "#10b981",
@@ -392,16 +382,18 @@
         "otel": {
           "kind": "span",
           "category": "operation",
-          "files": ["src/CollectionStorageAdapter.ts"]
+          "files": [
+            "src/CollectionStorageAdapter.ts"
+          ]
         }
       }
     },
     {
       "id": "update-membership-metadata",
       "type": "text",
-      "text": "# updateMembershipMetadata()\n\n**Flow:**\n1. Read memberships\n2. Find by IDs (throws if not found)\n3. Update metadata\n4. Write memberships",
-      "x": 612,
-      "y": 204,
+      "text": "# updateMembershipMetadata()\n\n**Flow:**\n1. Read collection file\n2. Find member in array (throws if not found)\n3. Update metadata\n4. Write collection file",
+      "x": 259,
+      "y": 572,
       "width": 250,
       "height": 130,
       "color": "#10b981",
@@ -434,16 +426,18 @@
         "otel": {
           "kind": "span",
           "category": "operation",
-          "files": ["src/CollectionStorageAdapter.ts"]
+          "files": [
+            "src/CollectionStorageAdapter.ts"
+          ]
         }
       }
     },
     {
       "id": "get-memberships",
       "type": "text",
-      "text": "# getAllMemberships() / getMembership()\n# getCollectionMemberships()\n# getRepositoryMemberships()\n\n**Flow:**\n1. Read memberships\n2. Filter/find/return",
-      "x": 240,
-      "y": 650,
+      "text": "# getAllMemberships() / getMembership()\n# getCollectionMemberships()\n# getRepositoryMemberships()\n\n**Flow:**\n1. Read collection file(s)\n2. Extract/filter members array",
+      "x": -130,
+      "y": 571,
       "width": 250,
       "height": 130,
       "color": "#34d399",
@@ -476,152 +470,18 @@
         "otel": {
           "kind": "span",
           "category": "query",
-          "files": ["src/CollectionStorageAdapter.ts"]
-        }
-      }
-    },
-    {
-      "id": "import-data",
-      "type": "text",
-      "text": "# importData()\n\n**Strategies:**\n- replace: Write both directly\n- merge: Read both, add new, write both\n- merge-update: Read both, add/update, write both",
-      "x": -80,
-      "y": 50,
-      "width": 280,
-      "height": 130,
-      "color": "#f59e0b",
-      "pv": {
-        "event": {
-          "name": "storage.import",
-          "attributes": {
-            "input.collectionsCount": {
-              "type": "number",
-              "required": true
-            },
-            "input.membershipsCount": {
-              "type": "number",
-              "required": true
-            },
-            "input.strategy": {
-              "type": "string",
-              "required": true
-            },
-            "output.collectionsImported": {
-              "type": "number",
-              "required": true
-            },
-            "output.membershipsImported": {
-              "type": "number",
-              "required": true
-            },
-            "duration.ms": {
-              "type": "number",
-              "required": false
-            }
-          }
-        },
-        "status": "implemented",
-        "sources": [
-          "src/CollectionStorageAdapter.ts"
-        ],
-        "otel": {
-          "kind": "span",
-          "category": "bulk",
-          "files": ["src/CollectionStorageAdapter.ts"]
-        }
-      }
-    },
-    {
-      "id": "export-data",
-      "type": "text",
-      "text": "# exportData()\n\n**Flow:**\n1. Read collections\n2. Read memberships\n3. Return both (parallel reads)",
-      "x": 240,
-      "y": 50,
-      "width": 250,
-      "height": 110,
-      "color": "#f59e0b",
-      "pv": {
-        "event": {
-          "name": "storage.export",
-          "attributes": {
-            "output.collectionsCount": {
-              "type": "number",
-              "required": true
-            },
-            "output.membershipsCount": {
-              "type": "number",
-              "required": true
-            },
-            "duration.ms": {
-              "type": "number",
-              "required": false
-            }
-          }
-        },
-        "status": "implemented",
-        "sources": [
-          "src/CollectionStorageAdapter.ts"
-        ],
-        "otel": {
-          "kind": "span",
-          "category": "bulk",
-          "files": ["src/CollectionStorageAdapter.ts"]
-        }
-      }
-    },
-    {
-      "id": "clear",
-      "type": "text",
-      "text": "# clear()\n\n**Flow:**\n1. Write empty collections array\n2. Write empty memberships array",
-      "x": 520,
-      "y": 50,
-      "width": 250,
-      "height": 110,
-      "color": "#f59e0b",
-      "pv": {
-        "event": {
-          "name": "storage.clear",
-          "attributes": {
-            "output.collectionsCleared": {
-              "type": "number",
-              "required": true
-            },
-            "output.membershipsCleared": {
-              "type": "number",
-              "required": true
-            },
-            "duration.ms": {
-              "type": "number",
-              "required": false
-            }
-          }
-        },
-        "status": "implemented",
-        "sources": [
-          "src/CollectionStorageAdapter.ts"
-        ],
-        "otel": {
-          "kind": "span",
-          "category": "bulk",
-          "files": ["src/CollectionStorageAdapter.ts"]
+          "files": [
+            "src/CollectionStorageAdapter.ts"
+          ]
         }
       }
     }
   ],
   "edges": [
     {
-      "id": "create-reads-collections",
+      "id": "create-writes",
       "fromNode": "create-collection",
-      "toNode": "read-collections-file",
-      "fromSide": "bottom",
-      "toSide": "top",
-      "pv": {
-        "edgeType": "read"
-      }
-    },
-    {
-      "id": "create-writes-collections",
-      "fromNode": "create-collection",
-      "toNode": "write-collections-file",
+      "toNode": "write-collection-file",
       "fromSide": "bottom",
       "toSide": "top",
       "pv": {
@@ -629,9 +489,9 @@
       }
     },
     {
-      "id": "update-reads-collections",
+      "id": "update-reads",
       "fromNode": "update-collection",
-      "toNode": "read-collections-file",
+      "toNode": "read-collection-file",
       "fromSide": "bottom",
       "toSide": "top",
       "pv": {
@@ -639,9 +499,9 @@
       }
     },
     {
-      "id": "update-writes-collections",
+      "id": "update-writes",
       "fromNode": "update-collection",
-      "toNode": "write-collections-file",
+      "toNode": "write-collection-file",
       "fromSide": "bottom",
       "toSide": "top",
       "pv": {
@@ -649,9 +509,9 @@
       }
     },
     {
-      "id": "delete-reads-collections",
+      "id": "delete-reads",
       "fromNode": "delete-collection",
-      "toNode": "read-collections-file",
+      "toNode": "read-collection-file",
       "fromSide": "bottom",
       "toSide": "top",
       "pv": {
@@ -659,39 +519,19 @@
       }
     },
     {
-      "id": "delete-writes-collections",
+      "id": "delete-deletes",
       "fromNode": "delete-collection",
-      "toNode": "write-collections-file",
+      "toNode": "delete-collection-file",
       "fromSide": "bottom",
       "toSide": "top",
       "pv": {
-        "edgeType": "write"
+        "edgeType": "delete"
       }
     },
     {
-      "id": "delete-reads-memberships",
-      "fromNode": "delete-collection",
-      "toNode": "read-memberships-file",
-      "fromSide": "bottom",
-      "toSide": "top",
-      "pv": {
-        "edgeType": "read"
-      }
-    },
-    {
-      "id": "delete-writes-memberships",
-      "fromNode": "delete-collection",
-      "toNode": "write-memberships-file",
-      "fromSide": "bottom",
-      "toSide": "top",
-      "pv": {
-        "edgeType": "write"
-      }
-    },
-    {
-      "id": "get-reads-collections",
+      "id": "get-all-reads",
       "fromNode": "get-collections",
-      "toNode": "read-collections-file",
+      "toNode": "read-all-collection-files",
       "fromSide": "bottom",
       "toSide": "top",
       "pv": {
@@ -699,9 +539,9 @@
       }
     },
     {
-      "id": "add-reads-collections",
-      "fromNode": "add-repository",
-      "toNode": "read-collections-file",
+      "id": "get-one-reads",
+      "fromNode": "get-collections",
+      "toNode": "read-collection-file",
       "fromSide": "bottom",
       "toSide": "top",
       "pv": {
@@ -709,9 +549,9 @@
       }
     },
     {
-      "id": "add-reads-memberships",
+      "id": "add-reads",
       "fromNode": "add-repository",
-      "toNode": "read-memberships-file",
+      "toNode": "read-collection-file",
       "fromSide": "bottom",
       "toSide": "top",
       "pv": {
@@ -719,9 +559,9 @@
       }
     },
     {
-      "id": "add-writes-memberships",
+      "id": "add-writes",
       "fromNode": "add-repository",
-      "toNode": "write-memberships-file",
+      "toNode": "write-collection-file",
       "fromSide": "bottom",
       "toSide": "top",
       "pv": {
@@ -729,9 +569,9 @@
       }
     },
     {
-      "id": "remove-reads-memberships",
+      "id": "remove-reads",
       "fromNode": "remove-repository",
-      "toNode": "read-memberships-file",
+      "toNode": "read-collection-file",
       "fromSide": "bottom",
       "toSide": "top",
       "pv": {
@@ -739,9 +579,9 @@
       }
     },
     {
-      "id": "remove-writes-memberships",
+      "id": "remove-writes",
       "fromNode": "remove-repository",
-      "toNode": "write-memberships-file",
+      "toNode": "write-collection-file",
       "fromSide": "bottom",
       "toSide": "top",
       "pv": {
@@ -749,9 +589,9 @@
       }
     },
     {
-      "id": "update-metadata-reads-memberships",
+      "id": "update-metadata-reads",
       "fromNode": "update-membership-metadata",
-      "toNode": "read-memberships-file",
+      "toNode": "read-collection-file",
       "fromSide": "bottom",
       "toSide": "top",
       "pv": {
@@ -759,9 +599,9 @@
       }
     },
     {
-      "id": "update-metadata-writes-memberships",
+      "id": "update-metadata-writes",
       "fromNode": "update-membership-metadata",
-      "toNode": "write-memberships-file",
+      "toNode": "write-collection-file",
       "fromSide": "bottom",
       "toSide": "top",
       "pv": {
@@ -769,9 +609,9 @@
       }
     },
     {
-      "id": "get-memberships-reads",
+      "id": "get-memberships-reads-all",
       "fromNode": "get-memberships",
-      "toNode": "read-memberships-file",
+      "toNode": "read-all-collection-files",
       "fromSide": "bottom",
       "toSide": "top",
       "pv": {
@@ -779,9 +619,9 @@
       }
     },
     {
-      "id": "import-reads-collections",
-      "fromNode": "import-data",
-      "toNode": "read-collections-file",
+      "id": "get-memberships-reads-one",
+      "fromNode": "get-memberships",
+      "toNode": "read-collection-file",
       "fromSide": "bottom",
       "toSide": "top",
       "pv": {
@@ -789,79 +629,20 @@
       }
     },
     {
-      "id": "import-writes-collections",
-      "fromNode": "import-data",
-      "toNode": "write-collections-file",
-      "fromSide": "bottom",
-      "toSide": "top",
+      "id": "read-all-uses-read-one",
+      "fromNode": "read-all-collection-files",
+      "toNode": "read-collection-file",
+      "fromSide": "right",
+      "toSide": "left",
       "pv": {
-        "edgeType": "write"
-      }
-    },
-    {
-      "id": "import-reads-memberships",
-      "fromNode": "import-data",
-      "toNode": "read-memberships-file",
-      "fromSide": "bottom",
-      "toSide": "top",
-      "pv": {
-        "edgeType": "read"
-      }
-    },
-    {
-      "id": "import-writes-memberships",
-      "fromNode": "import-data",
-      "toNode": "write-memberships-file",
-      "fromSide": "bottom",
-      "toSide": "top",
-      "pv": {
-        "edgeType": "write"
-      }
-    },
-    {
-      "id": "export-reads-collections",
-      "fromNode": "export-data",
-      "toNode": "read-collections-file",
-      "fromSide": "bottom",
-      "toSide": "top",
-      "pv": {
-        "edgeType": "read"
-      }
-    },
-    {
-      "id": "export-reads-memberships",
-      "fromNode": "export-data",
-      "toNode": "read-memberships-file",
-      "fromSide": "bottom",
-      "toSide": "top",
-      "pv": {
-        "edgeType": "read"
-      }
-    },
-    {
-      "id": "clear-writes-collections",
-      "fromNode": "clear",
-      "toNode": "write-collections-file",
-      "fromSide": "bottom",
-      "toSide": "top",
-      "pv": {
-        "edgeType": "write"
-      }
-    },
-    {
-      "id": "clear-writes-memberships",
-      "fromNode": "clear",
-      "toNode": "write-memberships-file",
-      "fromSide": "bottom",
-      "toSide": "top",
-      "pv": {
-        "edgeType": "write"
+        "edgeType": "internal"
       }
     }
   ],
   "pv": {
     "name": "Collection Storage Architecture",
-    "version": "1.0.0",
+    "version": "2.0.0",
+    "description": "One file per collection with embedded memberships (collections/{id}.json)",
     "markdown": ".principal-views/collection-storage/collection-storage.md",
     "edgeTypes": {
       "read": {
@@ -871,6 +652,14 @@
       "write": {
         "color": "#f59e0b",
         "label": "writes"
+      },
+      "delete": {
+        "color": "#ef4444",
+        "label": "deletes"
+      },
+      "internal": {
+        "color": "#a78bfa",
+        "label": "calls"
       }
     }
   }

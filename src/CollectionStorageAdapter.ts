@@ -2,8 +2,8 @@
  * CollectionStorageAdapter
  *
  * A storage adapter for managing collections and memberships using a FileSystemAdapter.
- * This provides a centralized, reusable way to handle collection persistence across
- * different storage backends (GitHub, localStorage, private storage, etc.).
+ * Each collection is stored in a separate file: collections/{id}.json
+ * Memberships are embedded within each collection file.
  *
  * @example
  * ```typescript
@@ -28,21 +28,17 @@ import type { FileSystemAdapter } from '@principal-ai/repository-abstraction';
 import type {
   Collection,
   CollectionMembership,
-  CollectionsData,
-  CollectionMembershipsData,
+  CollectionFile,
 } from './types.js';
 import { context, trace, Tracer, SpanStatusCode } from '@opentelemetry/api';
 import { getTracer } from './telemetry.js';
 
 export interface CollectionStorageOptions {
   /**
-   * File names for storage
-   * @default { collections: 'collections.json', memberships: 'collection-memberships.json' }
+   * Directory name for storing collections
+   * @default 'collections'
    */
-  fileNames?: {
-    collections?: string;
-    memberships?: string;
-  };
+  collectionsDir?: string;
 
   /**
    * Whether to pretty-print JSON output
@@ -69,10 +65,7 @@ export interface CollectionStorageOptions {
 }
 
 interface ResolvedCollectionStorageOptions {
-  fileNames: {
-    collections: string;
-    memberships: string;
-  };
+  collectionsDir: string;
   prettyPrint: boolean;
   version: string;
 }
@@ -91,10 +84,7 @@ export class CollectionStorageAdapter {
     this.rootPath = rootPath;
     this.adapter = adapter;
     this.options = {
-      fileNames: {
-        collections: options.fileNames?.collections ?? 'collections.json',
-        memberships: options.fileNames?.memberships ?? 'collection-memberships.json',
-      },
+      collectionsDir: options.collectionsDir ?? 'collections',
       prettyPrint: options.prettyPrint ?? true,
       version: options.version ?? '1.0',
     };
@@ -108,12 +98,12 @@ export class CollectionStorageAdapter {
   // Path Helpers
   // ============================================================================
 
-  private getCollectionsPath(): string {
-    return this.adapter.join(this.rootPath, this.options.fileNames.collections);
+  private getCollectionsDirPath(): string {
+    return this.adapter.join(this.rootPath, this.options.collectionsDir);
   }
 
-  private getMembershipsPath(): string {
-    return this.adapter.join(this.rootPath, this.options.fileNames.memberships);
+  private getCollectionFilePath(id: string): string {
+    return this.adapter.join(this.getCollectionsDirPath(), `${id}.json`);
   }
 
   // ============================================================================
@@ -121,115 +111,130 @@ export class CollectionStorageAdapter {
   // ============================================================================
 
   /**
-   * Read and parse the collections file
+   * Ensure collections directory exists
    */
-  private async readCollectionsFile(): Promise<CollectionsData> {
-    const path = this.getCollectionsPath();
+  private ensureCollectionsDir(): void {
+    const dirPath = this.getCollectionsDirPath();
+    const exists = this.adapter.exists(dirPath);
+    if (!exists) {
+      this.adapter.createDir(dirPath);
+    }
+  }
+
+  /**
+   * Read and parse a single collection file
+   */
+  private async readCollectionFile(id: string): Promise<Collection | undefined> {
+    const path = this.getCollectionFilePath(id);
     const activeSpan = trace.getActiveSpan();
 
     try {
       const exists = await this.adapter.exists(path);
       if (!exists) {
         activeSpan?.addEvent('storage.file.read', {
-          'file.name': 'collections.json',
-          'file.type': 'collections',
-          'result.count': 0,
+          'file.name': `${id}.json`,
+          'file.type': 'collection',
+          'result.found': false,
         });
-        return { version: this.options.version, collections: [] };
+        return undefined;
       }
+
       const content = await this.adapter.readFile(path);
-      const data = JSON.parse(content);
+      const data: CollectionFile = JSON.parse(content);
 
       activeSpan?.addEvent('storage.file.read', {
-        'file.name': 'collections.json',
-        'file.type': 'collections',
-        'result.count': data.collections.length,
+        'file.name': `${id}.json`,
+        'file.type': 'collection',
+        'result.found': true,
+        'result.memberCount': data.collection.members?.length ?? 0,
       });
 
-      return data;
+      return data.collection;
     } catch (error) {
-      console.error('Failed to read collections file:', error);
-      return { version: this.options.version, collections: [] };
+      console.error(`Failed to read collection file ${id}:`, error);
+      return undefined;
     }
   }
 
   /**
-   * Read and parse the memberships file
+   * Read all collection files from the directory
    */
-  private async readMembershipsFile(): Promise<CollectionMembershipsData> {
-    const path = this.getMembershipsPath();
+  private async readAllCollectionFiles(): Promise<Collection[]> {
     const activeSpan = trace.getActiveSpan();
 
     try {
-      const exists = await this.adapter.exists(path);
+      const dirPath = this.getCollectionsDirPath();
+      const exists = await this.adapter.exists(dirPath);
+
       if (!exists) {
-        activeSpan?.addEvent('storage.file.read', {
-          'file.name': 'collection-memberships.json',
-          'file.type': 'memberships',
+        activeSpan?.addEvent('storage.directory.read', {
+          'directory.name': this.options.collectionsDir,
           'result.count': 0,
         });
-        return { version: this.options.version, memberships: [] };
+        return [];
       }
-      const content = await this.adapter.readFile(path);
-      const data = JSON.parse(content);
 
-      activeSpan?.addEvent('storage.file.read', {
-        'file.name': 'collection-memberships.json',
-        'file.type': 'memberships',
-        'result.count': data.memberships.length,
+      const files = this.adapter.readDir(dirPath);
+      const jsonFiles = files.filter((f: string) => f.endsWith('.json'));
+
+      const collections: Collection[] = [];
+      for (const file of jsonFiles) {
+        const id = file.replace('.json', '');
+        const collection = await this.readCollectionFile(id);
+        if (collection) {
+          collections.push(collection);
+        }
+      }
+
+      activeSpan?.addEvent('storage.directory.read', {
+        'directory.name': this.options.collectionsDir,
+        'result.count': collections.length,
       });
 
-      return data;
+      return collections;
     } catch (error) {
-      console.error('Failed to read memberships file:', error);
-      return { version: this.options.version, memberships: [] };
+      console.error('Failed to read collections directory:', error);
+      return [];
     }
   }
 
   /**
-   * Write collections to file
+   * Write a collection to its file
    */
-  private async writeCollectionsFile(collections: Collection[]): Promise<void> {
-    const path = this.getCollectionsPath();
+  private async writeCollectionFile(collection: Collection): Promise<void> {
     const activeSpan = trace.getActiveSpan();
 
-    const data: CollectionsData = {
+    this.ensureCollectionsDir();
+
+    const path = this.getCollectionFilePath(collection.id);
+    const data: CollectionFile = {
       version: this.options.version,
-      collections,
+      collection,
     };
+
     const content = this.options.prettyPrint
       ? JSON.stringify(data, null, 2)
       : JSON.stringify(data);
+
     await this.adapter.writeFile(path, content);
 
     activeSpan?.addEvent('storage.file.write', {
-      'file.name': 'collections.json',
-      'file.type': 'collections',
-      'items.count': collections.length,
+      'file.name': `${collection.id}.json`,
+      'file.type': 'collection',
+      'members.count': collection.members.length,
     });
   }
 
   /**
-   * Write memberships to file
+   * Delete a collection file
    */
-  private async writeMembershipsFile(memberships: CollectionMembership[]): Promise<void> {
-    const path = this.getMembershipsPath();
-    const activeSpan = trace.getActiveSpan();
+  private async deleteCollectionFile(id: string): Promise<void> {
+    const path = this.getCollectionFilePath(id);
+    const exists = await this.adapter.exists(path);
 
-    const data: CollectionMembershipsData = {
-      version: this.options.version,
-      memberships,
-    };
-    const content = this.options.prettyPrint
-      ? JSON.stringify(data, null, 2)
-      : JSON.stringify(data);
-    await this.adapter.writeFile(path, content);
-
-    activeSpan?.addEvent('storage.file.write', {
-      'file.name': 'collection-memberships.json',
-      'file.type': 'memberships',
-      'items.count': memberships.length,
-    });
+    if (exists) {
+      await this.adapter.deleteFile(path);
+    }
   }
 
   // ============================================================================
@@ -245,15 +250,15 @@ export class CollectionStorageAdapter {
     return await context.with(trace.setSpan(context.active(), span), async () => {
       try {
         const startTime = Date.now();
-        const data = await this.readCollectionsFile();
+        const collections = await this.readAllCollectionFiles();
 
         span.setAttributes({
-          'output.count': data.collections.length,
+          'output.count': collections.length,
           'duration.ms': Date.now() - startTime,
         });
         span.setStatus({ code: SpanStatusCode.OK });
 
-        return data.collections;
+        return collections;
       } catch (error) {
         span.recordException(error as Error);
         span.setStatus({
@@ -280,8 +285,7 @@ export class CollectionStorageAdapter {
     return await context.with(trace.setSpan(context.active(), span), async () => {
       try {
         const startTime = Date.now();
-        const collections = await this.getCollections();
-        const result = collections.find((c) => c.id === id);
+        const result = await this.readCollectionFile(id);
 
         span.setAttributes({
           'output.count': result ? 1 : 0,
@@ -325,7 +329,6 @@ export class CollectionStorageAdapter {
     return await context.with(trace.setSpan(context.active(), span), async () => {
       try {
         const startTime = Date.now();
-        const collections = await this.getCollections();
         const now = Date.now();
         const id = this.generateCollectionId();
 
@@ -338,12 +341,12 @@ export class CollectionStorageAdapter {
           isDefault: input.isDefault,
           suggestedClonePath: input.suggestedClonePath,
           metadata: input.metadata,
+          members: [],
           createdAt: now,
           updatedAt: now,
         };
 
-        collections.push(newCollection);
-        await this.writeCollectionsFile(collections);
+        await this.writeCollectionFile(newCollection);
 
         span.setAttributes({
           'output.collectionId': id,
@@ -371,7 +374,7 @@ export class CollectionStorageAdapter {
    */
   async updateCollection(
     id: string,
-    updates: Partial<Omit<Collection, 'id' | 'createdAt'>>
+    updates: Partial<Omit<Collection, 'id' | 'createdAt' | 'members'>>
   ): Promise<Collection> {
     const span = this.tracer.startSpan('collection.update', {
       attributes: {
@@ -383,24 +386,22 @@ export class CollectionStorageAdapter {
     return await context.with(trace.setSpan(context.active(), span), async () => {
       try {
         const startTime = Date.now();
-        const collections = await this.getCollections();
-        const index = collections.findIndex((c) => c.id === id);
+        const existing = await this.readCollectionFile(id);
 
-        if (index === -1) {
+        if (!existing) {
           throw new Error(`Collection not found: ${id}`);
         }
 
-        const existing = collections[index]!;
         const updated: Collection = {
           ...existing,
           ...updates,
           id: existing.id, // Never allow ID to change
           createdAt: existing.createdAt, // Never allow createdAt to change
+          members: existing.members, // Never allow members to change via update
           updatedAt: Date.now(),
         };
 
-        collections[index] = updated;
-        await this.writeCollectionsFile(collections);
+        await this.writeCollectionFile(updated);
 
         span.setAttributes({
           'output.updatedAt': updated.updatedAt,
@@ -435,23 +436,17 @@ export class CollectionStorageAdapter {
     return await context.with(trace.setSpan(context.active(), span), async () => {
       try {
         const startTime = Date.now();
-        const collections = await this.getCollections();
-        const filtered = collections.filter((c) => c.id !== id);
+        const existing = await this.readCollectionFile(id);
 
-        if (filtered.length === collections.length) {
+        if (!existing) {
           throw new Error(`Collection not found: ${id}`);
         }
 
-        await this.writeCollectionsFile(filtered);
-
-        // Cascade delete: remove all memberships for this collection
-        const memberships = await this.getAllMemberships();
-        const filteredMemberships = memberships.filter((m) => m.collectionId !== id);
-        const cascadeDeleted = memberships.length - filteredMemberships.length;
-        await this.writeMembershipsFile(filteredMemberships);
+        const memberCount = existing.members.length;
+        await this.deleteCollectionFile(id);
 
         span.setAttributes({
-          'output.membershipsCascadeDeleted': cascadeDeleted,
+          'output.membershipsCascadeDeleted': memberCount,
           'duration.ms': Date.now() - startTime,
         });
         span.setStatus({ code: SpanStatusCode.OK });
@@ -481,15 +476,16 @@ export class CollectionStorageAdapter {
     return await context.with(trace.setSpan(context.active(), span), async () => {
       try {
         const startTime = Date.now();
-        const data = await this.readMembershipsFile();
+        const collections = await this.readAllCollectionFiles();
+        const allMemberships = collections.flatMap(c => c.members);
 
         span.setAttributes({
-          'output.count': data.memberships.length,
+          'output.count': allMemberships.length,
           'duration.ms': Date.now() - startTime,
         });
         span.setStatus({ code: SpanStatusCode.OK });
 
-        return data.memberships;
+        return allMemberships;
       } catch (error) {
         span.recordException(error as Error);
         span.setStatus({
@@ -516,16 +512,16 @@ export class CollectionStorageAdapter {
     return await context.with(trace.setSpan(context.active(), span), async () => {
       try {
         const startTime = Date.now();
-        const memberships = await this.getAllMemberships();
-        const filtered = memberships.filter((m) => m.collectionId === collectionId);
+        const collection = await this.readCollectionFile(collectionId);
+        const members = collection?.members ?? [];
 
         span.setAttributes({
-          'output.count': filtered.length,
+          'output.count': members.length,
           'duration.ms': Date.now() - startTime,
         });
         span.setStatus({ code: SpanStatusCode.OK });
 
-        return filtered;
+        return members;
       } catch (error) {
         span.recordException(error as Error);
         span.setStatus({
@@ -552,16 +548,18 @@ export class CollectionStorageAdapter {
     return await context.with(trace.setSpan(context.active(), span), async () => {
       try {
         const startTime = Date.now();
-        const memberships = await this.getAllMemberships();
-        const filtered = memberships.filter((m) => m.repositoryId === repositoryId);
+        const collections = await this.readAllCollectionFiles();
+        const memberships = collections.flatMap(c =>
+          c.members.filter(m => m.repositoryId === repositoryId)
+        );
 
         span.setAttributes({
-          'output.count': filtered.length,
+          'output.count': memberships.length,
           'duration.ms': Date.now() - startTime,
         });
         span.setStatus({ code: SpanStatusCode.OK });
 
-        return filtered;
+        return memberships;
       } catch (error) {
         span.recordException(error as Error);
         span.setStatus({
@@ -592,10 +590,8 @@ export class CollectionStorageAdapter {
     return await context.with(trace.setSpan(context.active(), span), async () => {
       try {
         const startTime = Date.now();
-        const memberships = await this.getAllMemberships();
-        const result = memberships.find(
-          (m) => m.collectionId === collectionId && m.repositoryId === repositoryId
-        );
+        const collection = await this.readCollectionFile(collectionId);
+        const result = collection?.members.find(m => m.repositoryId === repositoryId);
 
         span.setAttributes({
           'output.count': result ? 1 : 0,
@@ -637,16 +633,14 @@ export class CollectionStorageAdapter {
         const startTime = Date.now();
 
         // Verify collection exists
-        const collection = await this.getCollection(collectionId);
+        const collection = await this.readCollectionFile(collectionId);
         if (!collection) {
           throw new Error(`Collection not found: ${collectionId}`);
         }
 
-        const memberships = await this.getAllMemberships();
-
         // Check if membership already exists
-        const existing = memberships.find(
-          (m) => m.repositoryId === repositoryId && m.collectionId === collectionId
+        const existing = collection.members.find(
+          m => m.repositoryId === repositoryId
         );
 
         if (existing) {
@@ -665,8 +659,9 @@ export class CollectionStorageAdapter {
           metadata,
         };
 
-        memberships.push(newMembership);
-        await this.writeMembershipsFile(memberships);
+        collection.members.push(newMembership);
+        collection.updatedAt = Date.now();
+        await this.writeCollectionFile(collection);
 
         span.setAttributes({
           'output.alreadyExisted': false,
@@ -702,15 +697,20 @@ export class CollectionStorageAdapter {
     return await context.with(trace.setSpan(context.active(), span), async () => {
       try {
         const startTime = Date.now();
-        const memberships = await this.getAllMemberships();
-        const filtered = memberships.filter(
-          (m) => !(m.repositoryId === repositoryId && m.collectionId === collectionId)
+        const collection = await this.readCollectionFile(collectionId);
+
+        if (!collection) {
+          throw new Error(`Collection not found: ${collectionId}`);
+        }
+
+        const initialLength = collection.members.length;
+        collection.members = collection.members.filter(
+          m => m.repositoryId !== repositoryId
         );
 
-        const wasPresent = filtered.length < memberships.length;
+        const wasPresent = collection.members.length < initialLength;
 
         if (!wasPresent) {
-          // Membership didn't exist, but that's okay
           span.setAttributes({
             'output.wasPresent': false,
             'duration.ms': Date.now() - startTime,
@@ -719,7 +719,8 @@ export class CollectionStorageAdapter {
           return;
         }
 
-        await this.writeMembershipsFile(filtered);
+        collection.updatedAt = Date.now();
+        await this.writeCollectionFile(collection);
 
         span.setAttributes({
           'output.wasPresent': true,
@@ -758,24 +759,30 @@ export class CollectionStorageAdapter {
     return await context.with(trace.setSpan(context.active(), span), async () => {
       try {
         const startTime = Date.now();
-        const memberships = await this.getAllMemberships();
-        const index = memberships.findIndex(
-          (m) => m.collectionId === collectionId && m.repositoryId === repositoryId
+        const collection = await this.readCollectionFile(collectionId);
+
+        if (!collection) {
+          throw new Error(`Collection not found: ${collectionId}`);
+        }
+
+        const memberIndex = collection.members.findIndex(
+          m => m.repositoryId === repositoryId
         );
 
-        if (index === -1) {
+        if (memberIndex === -1) {
           throw new Error(
             `Membership not found: ${repositoryId} in collection ${collectionId}`
           );
         }
 
         const updated: CollectionMembership = {
-          ...memberships[index]!,
+          ...collection.members[memberIndex]!,
           metadata,
         };
 
-        memberships[index] = updated;
-        await this.writeMembershipsFile(memberships);
+        collection.members[memberIndex] = updated;
+        collection.updatedAt = Date.now();
+        await this.writeCollectionFile(collection);
 
         span.setAttributes({
           'duration.ms': Date.now() - startTime,
@@ -783,207 +790,6 @@ export class CollectionStorageAdapter {
         span.setStatus({ code: SpanStatusCode.OK });
 
         return updated;
-      } catch (error) {
-        span.recordException(error as Error);
-        span.setStatus({
-          code: SpanStatusCode.ERROR,
-          message: (error as Error).message,
-        });
-        throw error;
-      } finally {
-        span.end();
-      }
-    });
-  }
-
-  // ============================================================================
-  // Bulk Operations
-  // ============================================================================
-
-  /**
-   * Import collections and memberships from external source.
-   *
-   * @param importCollections - Collections to import
-   * @param importMemberships - Memberships to import
-   * @param strategy - How to handle conflicts:
-   *   - 'replace': Replace all local data with imported data (default)
-   *   - 'merge': Add new items, keep existing ones
-   *   - 'merge-update': Add new items and update existing ones by ID
-   */
-  async importData(
-    importCollections: Collection[],
-    importMemberships: CollectionMembership[],
-    strategy: 'replace' | 'merge' | 'merge-update' = 'replace'
-  ): Promise<void> {
-    const span = this.tracer.startSpan('storage.import', {
-      attributes: {
-        'input.collectionsCount': importCollections.length,
-        'input.membershipsCount': importMemberships.length,
-        'input.strategy': strategy,
-      },
-    });
-
-    return await context.with(trace.setSpan(context.active(), span), async () => {
-      try {
-      const startTime = Date.now();
-
-      if (strategy === 'replace') {
-        // Replace mode: imported data is source of truth
-        await this.writeCollectionsFile(importCollections);
-        await this.writeMembershipsFile(importMemberships);
-
-        span.setAttributes({
-          'output.collectionsImported': importCollections.length,
-          'output.membershipsImported': importMemberships.length,
-          'duration.ms': Date.now() - startTime,
-        });
-        span.setStatus({ code: SpanStatusCode.OK });
-        return;
-      }
-
-      const existingCollections = await this.getCollections();
-      const existingMemberships = await this.getAllMemberships();
-
-      if (strategy === 'merge') {
-        // Merge mode: add new items, keep existing
-        const existingIds = new Set(existingCollections.map((c) => c.id));
-        const newCollections = importCollections.filter((c) => !existingIds.has(c.id));
-        const mergedCollections = [...existingCollections, ...newCollections];
-
-        const existingMembershipKeys = new Set(
-          existingMemberships.map((m) => `${m.collectionId}:${m.repositoryId}`)
-        );
-        const newMemberships = importMemberships.filter(
-          (m) => !existingMembershipKeys.has(`${m.collectionId}:${m.repositoryId}`)
-        );
-        const mergedMemberships = [...existingMemberships, ...newMemberships];
-
-        await this.writeCollectionsFile(mergedCollections);
-        await this.writeMembershipsFile(mergedMemberships);
-
-        span.setAttributes({
-          'output.collectionsImported': newCollections.length,
-          'output.membershipsImported': newMemberships.length,
-          'duration.ms': Date.now() - startTime,
-        });
-      } else if (strategy === 'merge-update') {
-        // Merge-update mode: add new items and update existing ones
-        const existingMap = new Map(existingCollections.map((c) => [c.id, c]));
-        const mergedCollections = [...existingCollections];
-
-        for (const imported of importCollections) {
-          const existingIndex = mergedCollections.findIndex((c) => c.id === imported.id);
-          if (existingIndex === -1) {
-            mergedCollections.push(imported);
-          } else {
-            mergedCollections[existingIndex] = imported;
-          }
-        }
-
-        const existingMembershipMap = new Map(
-          existingMemberships.map((m) => [`${m.collectionId}:${m.repositoryId}`, m])
-        );
-        const mergedMemberships = [...existingMemberships];
-
-        for (const imported of importMemberships) {
-          const key = `${imported.collectionId}:${imported.repositoryId}`;
-          const existingIndex = mergedMemberships.findIndex(
-            (m) => `${m.collectionId}:${m.repositoryId}` === key
-          );
-          if (existingIndex === -1) {
-            mergedMemberships.push(imported);
-          } else {
-            mergedMemberships[existingIndex] = imported;
-          }
-        }
-
-        await this.writeCollectionsFile(mergedCollections);
-        await this.writeMembershipsFile(mergedMemberships);
-
-        span.setAttributes({
-          'output.collectionsImported': mergedCollections.length - existingCollections.length,
-          'output.membershipsImported': mergedMemberships.length - existingMemberships.length,
-          'duration.ms': Date.now() - startTime,
-        });
-      }
-
-      span.setStatus({ code: SpanStatusCode.OK });
-      } catch (error) {
-        span.recordException(error as Error);
-        span.setStatus({
-          code: SpanStatusCode.ERROR,
-          message: (error as Error).message,
-        });
-        throw error;
-      } finally {
-        span.end();
-      }
-    });
-  }
-
-  /**
-   * Export all collections and memberships
-   */
-  async exportData(): Promise<{
-    collections: Collection[];
-    memberships: CollectionMembership[];
-  }> {
-    const span = this.tracer.startSpan('storage.export');
-
-    return await context.with(trace.setSpan(context.active(), span), async () => {
-      try {
-        const startTime = Date.now();
-        const [collections, memberships] = await Promise.all([
-          this.getCollections(),
-          this.getAllMemberships(),
-        ]);
-
-        span.setAttributes({
-          'output.collectionsCount': collections.length,
-          'output.membershipsCount': memberships.length,
-          'duration.ms': Date.now() - startTime,
-        });
-        span.setStatus({ code: SpanStatusCode.OK });
-
-        return { collections, memberships };
-      } catch (error) {
-        span.recordException(error as Error);
-        span.setStatus({
-          code: SpanStatusCode.ERROR,
-          message: (error as Error).message,
-        });
-        throw error;
-      } finally {
-        span.end();
-      }
-    });
-  }
-
-  /**
-   * Clear all collections and memberships
-   */
-  async clear(): Promise<void> {
-    const span = this.tracer.startSpan('storage.clear');
-
-    return await context.with(trace.setSpan(context.active(), span), async () => {
-      try {
-        const startTime = Date.now();
-
-        // Get current counts before clearing
-        const [collections, memberships] = await Promise.all([
-          this.getCollections(),
-          this.getAllMemberships(),
-        ]);
-
-        await this.writeCollectionsFile([]);
-        await this.writeMembershipsFile([]);
-
-        span.setAttributes({
-          'output.collectionsCleared': collections.length,
-          'output.membershipsCleared': memberships.length,
-          'duration.ms': Date.now() - startTime,
-        });
-        span.setStatus({ code: SpanStatusCode.OK });
       } catch (error) {
         span.recordException(error as Error);
         span.setStatus({
@@ -1011,10 +817,10 @@ export class CollectionStorageAdapter {
   }
 
   /**
-   * Check if collections file exists
+   * Check if collections directory exists
    */
   async exists(): Promise<boolean> {
-    const path = this.getCollectionsPath();
+    const path = this.getCollectionsDirPath();
     return this.adapter.exists(path);
   }
 
@@ -1026,16 +832,14 @@ export class CollectionStorageAdapter {
     membershipsCount: number;
     averageMembershipsPerCollection: number;
   }> {
-    const [collections, memberships] = await Promise.all([
-      this.getCollections(),
-      this.getAllMemberships(),
-    ]);
+    const collections = await this.readAllCollectionFiles();
+    const membershipsCount = collections.reduce((sum, c) => sum + c.members.length, 0);
 
     return {
       collectionsCount: collections.length,
-      membershipsCount: memberships.length,
+      membershipsCount,
       averageMembershipsPerCollection:
-        collections.length > 0 ? memberships.length / collections.length : 0,
+        collections.length > 0 ? membershipsCount / collections.length : 0,
     };
   }
 }

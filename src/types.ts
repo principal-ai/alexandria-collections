@@ -110,6 +110,8 @@ export interface Collection {
   suggestedClonePath?: string;
   /** Collection metadata with region and map configuration */
   metadata?: CollectionMetadata;
+  /** Repository memberships in this collection */
+  members: CollectionMembership[];
 }
 
 /**
@@ -130,19 +132,12 @@ export interface CollectionMembership {
 }
 
 /**
- * Storage structure for collections.json
+ * Storage structure for individual collection files
+ * Each collection is stored in collections/{id}.json
  */
-export interface CollectionsData {
+export interface CollectionFile {
   version: string;
-  collections: Collection[];
-}
-
-/**
- * Storage structure for collection-memberships.json
- */
-export interface CollectionMembershipsData {
-  version: string;
-  memberships: CollectionMembership[];
+  collection: Collection;
 }
 
 // ============================================================================

@@ -29,6 +29,8 @@ import type {
   Collection,
   CollectionMembership,
   CollectionFile,
+  CustomRegion,
+  RepositoryLayoutData,
 } from './types.js';
 import { context, trace, Tracer, SpanStatusCode } from '@opentelemetry/api';
 import { getTracer } from './telemetry.js';
@@ -790,6 +792,455 @@ export class CollectionStorageAdapter {
         span.setStatus({ code: SpanStatusCode.OK });
 
         return updated;
+      } catch (error) {
+        span.recordException(error as Error);
+        span.setStatus({
+          code: SpanStatusCode.ERROR,
+          message: (error as Error).message,
+        });
+        throw error;
+      } finally {
+        span.end();
+      }
+    });
+  }
+
+  // ============================================================================
+  // Region Management Operations
+  // ============================================================================
+
+  /**
+   * Create a new custom region in a collection
+   */
+  async createRegion(
+    collectionId: string,
+    region: Omit<CustomRegion, 'id'>
+  ): Promise<CustomRegion> {
+    const span = this.tracer.startSpan('region.create', {
+      attributes: {
+        'input.collectionId': collectionId,
+        'input.regionName': region.name,
+      },
+    });
+
+    return await context.with(trace.setSpan(context.active(), span), async () => {
+      try {
+        const startTime = Date.now();
+        const collection = await this.readCollectionFile(collectionId);
+
+        if (!collection) {
+          throw new Error(`Collection not found: ${collectionId}`);
+        }
+
+        // Generate region ID
+        const regionId = `region-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+
+        const newRegion: CustomRegion = {
+          ...region,
+          id: regionId,
+          createdAt: Date.now(),
+        };
+
+        // Initialize metadata if needed
+        if (!collection.metadata) {
+          collection.metadata = {};
+        }
+        if (!collection.metadata.customRegions) {
+          collection.metadata.customRegions = [];
+        }
+
+        collection.metadata.customRegions.push(newRegion);
+        collection.updatedAt = Date.now();
+        await this.writeCollectionFile(collection);
+
+        span.setAttributes({
+          'output.regionId': regionId,
+          'duration.ms': Date.now() - startTime,
+        });
+        span.setStatus({ code: SpanStatusCode.OK });
+
+        return newRegion;
+      } catch (error) {
+        span.recordException(error as Error);
+        span.setStatus({
+          code: SpanStatusCode.ERROR,
+          message: (error as Error).message,
+        });
+        throw error;
+      } finally {
+        span.end();
+      }
+    });
+  }
+
+  /**
+   * Update an existing custom region
+   */
+  async updateRegion(
+    collectionId: string,
+    regionId: string,
+    updates: Partial<Omit<CustomRegion, 'id' | 'createdAt'>>
+  ): Promise<void> {
+    const span = this.tracer.startSpan('region.update', {
+      attributes: {
+        'input.collectionId': collectionId,
+        'input.regionId': regionId,
+      },
+    });
+
+    return await context.with(trace.setSpan(context.active(), span), async () => {
+      try {
+        const startTime = Date.now();
+        const collection = await this.readCollectionFile(collectionId);
+
+        if (!collection) {
+          throw new Error(`Collection not found: ${collectionId}`);
+        }
+
+        const regions = collection.metadata?.customRegions ?? [];
+        const regionIndex = regions.findIndex(r => r.id === regionId);
+
+        if (regionIndex === -1) {
+          throw new Error(`Region not found: ${regionId} in collection ${collectionId}`);
+        }
+
+        // Update the region
+        regions[regionIndex] = {
+          ...regions[regionIndex]!,
+          ...updates,
+          id: regionId, // Never allow ID to change
+          createdAt: regions[regionIndex]!.createdAt, // Never allow createdAt to change
+        };
+
+        if (!collection.metadata) {
+          collection.metadata = {};
+        }
+        collection.metadata.customRegions = regions;
+        collection.updatedAt = Date.now();
+        await this.writeCollectionFile(collection);
+
+        span.setAttributes({
+          'duration.ms': Date.now() - startTime,
+        });
+        span.setStatus({ code: SpanStatusCode.OK });
+      } catch (error) {
+        span.recordException(error as Error);
+        span.setStatus({
+          code: SpanStatusCode.ERROR,
+          message: (error as Error).message,
+        });
+        throw error;
+      } finally {
+        span.end();
+      }
+    });
+  }
+
+  /**
+   * Delete a custom region from a collection
+   * Optionally cleans up region assignments from memberships
+   */
+  async deleteRegion(
+    collectionId: string,
+    regionId: string,
+    cleanupAssignments = true
+  ): Promise<void> {
+    const span = this.tracer.startSpan('region.delete', {
+      attributes: {
+        'input.collectionId': collectionId,
+        'input.regionId': regionId,
+        'input.cleanupAssignments': cleanupAssignments,
+      },
+    });
+
+    return await context.with(trace.setSpan(context.active(), span), async () => {
+      try {
+        const startTime = Date.now();
+        const collection = await this.readCollectionFile(collectionId);
+
+        if (!collection) {
+          throw new Error(`Collection not found: ${collectionId}`);
+        }
+
+        const regions = collection.metadata?.customRegions ?? [];
+        const regionExists = regions.some(r => r.id === regionId);
+
+        if (!regionExists) {
+          throw new Error(`Region not found: ${regionId} in collection ${collectionId}`);
+        }
+
+        // Remove the region
+        const updatedRegions = regions.filter(r => r.id !== regionId);
+
+        if (!collection.metadata) {
+          collection.metadata = {};
+        }
+        collection.metadata.customRegions = updatedRegions;
+
+        // Clean up region assignments from memberships
+        let cleanedCount = 0;
+        if (cleanupAssignments) {
+          collection.members = collection.members.map(member => {
+            if (member.metadata?.regionId === regionId) {
+              cleanedCount++;
+              const { regionId: _, ...restMetadata } = member.metadata;
+              return {
+                ...member,
+                metadata: Object.keys(restMetadata).length > 0 ? restMetadata : undefined,
+              };
+            }
+            return member;
+          });
+        }
+
+        collection.updatedAt = Date.now();
+        await this.writeCollectionFile(collection);
+
+        span.setAttributes({
+          'output.assignmentsCleaned': cleanedCount,
+          'duration.ms': Date.now() - startTime,
+        });
+        span.setStatus({ code: SpanStatusCode.OK });
+      } catch (error) {
+        span.recordException(error as Error);
+        span.setStatus({
+          code: SpanStatusCode.ERROR,
+          message: (error as Error).message,
+        });
+        throw error;
+      } finally {
+        span.end();
+      }
+    });
+  }
+
+  /**
+   * Assign a repository to a custom region
+   */
+  async assignRepositoryToRegion(
+    collectionId: string,
+    repositoryId: string,
+    regionId: string
+  ): Promise<void> {
+    const span = this.tracer.startSpan('repository.region.assign', {
+      attributes: {
+        'input.collectionId': collectionId,
+        'input.repositoryId': repositoryId,
+        'input.regionId': regionId,
+      },
+    });
+
+    return await context.with(trace.setSpan(context.active(), span), async () => {
+      try {
+        const startTime = Date.now();
+        const collection = await this.readCollectionFile(collectionId);
+
+        if (!collection) {
+          throw new Error(`Collection not found: ${collectionId}`);
+        }
+
+        // Verify region exists
+        const regions = collection.metadata?.customRegions ?? [];
+        const regionExists = regions.some(r => r.id === regionId);
+        if (!regionExists) {
+          throw new Error(`Region not found: ${regionId} in collection ${collectionId}`);
+        }
+
+        // Find the membership
+        const memberIndex = collection.members.findIndex(
+          m => m.repositoryId === repositoryId
+        );
+
+        if (memberIndex === -1) {
+          throw new Error(
+            `Membership not found: ${repositoryId} in collection ${collectionId}`
+          );
+        }
+
+        // Update the membership metadata
+        const member = collection.members[memberIndex]!;
+        collection.members[memberIndex] = {
+          ...member,
+          metadata: {
+            ...member.metadata,
+            regionId,
+          },
+        };
+
+        collection.updatedAt = Date.now();
+        await this.writeCollectionFile(collection);
+
+        span.setAttributes({
+          'duration.ms': Date.now() - startTime,
+        });
+        span.setStatus({ code: SpanStatusCode.OK });
+      } catch (error) {
+        span.recordException(error as Error);
+        span.setStatus({
+          code: SpanStatusCode.ERROR,
+          message: (error as Error).message,
+        });
+        throw error;
+      } finally {
+        span.end();
+      }
+    });
+  }
+
+  /**
+   * Update repository position in the overworld map
+   */
+  async updateRepositoryPosition(
+    collectionId: string,
+    repositoryId: string,
+    layout: RepositoryLayoutData
+  ): Promise<void> {
+    const span = this.tracer.startSpan('repository.position.update', {
+      attributes: {
+        'input.collectionId': collectionId,
+        'input.repositoryId': repositoryId,
+        'input.gridX': layout.gridX,
+        'input.gridY': layout.gridY,
+      },
+    });
+
+    return await context.with(trace.setSpan(context.active(), span), async () => {
+      try {
+        const startTime = Date.now();
+        const collection = await this.readCollectionFile(collectionId);
+
+        if (!collection) {
+          throw new Error(`Collection not found: ${collectionId}`);
+        }
+
+        // Find the membership
+        const memberIndex = collection.members.findIndex(
+          m => m.repositoryId === repositoryId
+        );
+
+        if (memberIndex === -1) {
+          throw new Error(
+            `Membership not found: ${repositoryId} in collection ${collectionId}`
+          );
+        }
+
+        // Update the membership metadata
+        const member = collection.members[memberIndex]!;
+        collection.members[memberIndex] = {
+          ...member,
+          metadata: {
+            ...member.metadata,
+            layout,
+          },
+        };
+
+        collection.updatedAt = Date.now();
+        await this.writeCollectionFile(collection);
+
+        span.setAttributes({
+          'duration.ms': Date.now() - startTime,
+        });
+        span.setStatus({ code: SpanStatusCode.OK });
+      } catch (error) {
+        span.recordException(error as Error);
+        span.setStatus({
+          code: SpanStatusCode.ERROR,
+          message: (error as Error).message,
+        });
+        throw error;
+      } finally {
+        span.end();
+      }
+    });
+  }
+
+  /**
+   * Batch initialize layout (regions + assignments + positions)
+   * This is called once when a collection loads to compute initial layout
+   * Reduces re-renders from N operations to 1
+   */
+  async batchInitializeLayout(
+    collectionId: string,
+    updates: {
+      regions?: CustomRegion[];
+      assignments?: Array<{ repositoryId: string; regionId: string }>;
+      positions?: Array<{ repositoryId: string; layout: RepositoryLayoutData }>;
+    }
+  ): Promise<void> {
+    const span = this.tracer.startSpan('layout.batch.initialize', {
+      attributes: {
+        'input.collectionId': collectionId,
+        'input.regionsCount': updates.regions?.length ?? 0,
+        'input.assignmentsCount': updates.assignments?.length ?? 0,
+        'input.positionsCount': updates.positions?.length ?? 0,
+      },
+    });
+
+    return await context.with(trace.setSpan(context.active(), span), async () => {
+      try {
+        const startTime = Date.now();
+        const collection = await this.readCollectionFile(collectionId);
+
+        if (!collection) {
+          throw new Error(`Collection not found: ${collectionId}`);
+        }
+
+        // Initialize metadata if needed
+        if (!collection.metadata) {
+          collection.metadata = {};
+        }
+
+        // Update regions
+        if (updates.regions) {
+          collection.metadata.customRegions = updates.regions;
+        }
+
+        // Create a map for quick member lookup
+        const memberMap = new Map(
+          collection.members.map((m, idx) => [m.repositoryId, idx])
+        );
+
+        // Apply assignments
+        if (updates.assignments) {
+          for (const { repositoryId, regionId } of updates.assignments) {
+            const idx = memberMap.get(repositoryId);
+            if (idx !== undefined) {
+              const member = collection.members[idx]!;
+              collection.members[idx] = {
+                ...member,
+                metadata: {
+                  ...member.metadata,
+                  regionId,
+                },
+              };
+            }
+          }
+        }
+
+        // Apply positions
+        if (updates.positions) {
+          for (const { repositoryId, layout } of updates.positions) {
+            const idx = memberMap.get(repositoryId);
+            if (idx !== undefined) {
+              const member = collection.members[idx]!;
+              collection.members[idx] = {
+                ...member,
+                metadata: {
+                  ...member.metadata,
+                  layout,
+                },
+              };
+            }
+          }
+        }
+
+        collection.updatedAt = Date.now();
+        await this.writeCollectionFile(collection);
+
+        span.setAttributes({
+          'duration.ms': Date.now() - startTime,
+        });
+        span.setStatus({ code: SpanStatusCode.OK });
       } catch (error) {
         span.recordException(error as Error);
         span.setStatus({

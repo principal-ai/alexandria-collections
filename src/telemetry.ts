@@ -1,88 +1,44 @@
 /**
- * OpenTelemetry configuration for Alexandria Collections
+ * OpenTelemetry utilities for Alexandria Collections
  *
- * Provides tracer setup with environment-based exporter switching:
- * - Development (NODE_ENV !== 'production'): Console exporter
- * - Production (NODE_ENV === 'production'): OTLP HTTP exporter
+ * This library follows the OpenTelemetry library instrumentation pattern:
+ * - Uses only @opentelemetry/api (platform-agnostic)
+ * - Does NOT create its own provider/exporters
+ * - Gets tracer from the global provider set up by the application
+ * - Returns no-op tracer if no provider is registered (safe, does nothing)
+ *
+ * The application using this library is responsible for:
+ * - Setting up the tracer provider (WebTracerProvider for browser, NodeSDK for Node.js)
+ * - Configuring exporters and span processors
+ * - Registering the provider globally
  */
 
 import { trace, Tracer } from '@opentelemetry/api';
-import { BatchSpanProcessor, ConsoleSpanExporter } from '@opentelemetry/sdk-trace-base';
-import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
-import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
-import { Resource } from '@opentelemetry/resources';
-import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
 
 export const TRACER_NAME = '@principal-ai/alexandria-collections';
 
-let tracerProvider: NodeTracerProvider | null = null;
-let isEnabled = false;
-
 /**
- * Initialize the OpenTelemetry tracer provider
- * @param serviceName - Optional service name override
+ * Get a tracer instance for instrumenting alexandria-collections operations
+ *
+ * This function retrieves a tracer from the global OpenTelemetry provider
+ * that was set up by the application. If no provider is registered, it
+ * returns a no-op tracer that safely does nothing.
+ *
+ * @returns Tracer instance (real tracer if provider is registered, no-op tracer otherwise)
+ *
+ * @example
+ * ```typescript
+ * import { getTracer } from '@principal-ai/alexandria-collections';
+ *
+ * const tracer = getTracer();
+ * const span = tracer.startSpan('loadCollection');
+ * try {
+ *   // ... do work ...
+ * } finally {
+ *   span.end();
+ * }
+ * ```
  */
-function initializeTracerProvider(serviceName: string = TRACER_NAME): void {
-  if (tracerProvider) {
-    return; // Already initialized
-  }
-
-  const resource = Resource.default().merge(
-    new Resource({
-      [SemanticResourceAttributes.SERVICE_NAME]: serviceName,
-    })
-  );
-
-  const provider = new NodeTracerProvider({
-    resource,
-  });
-
-  // Choose exporter based on environment
-  const isProduction = process.env.NODE_ENV === 'production';
-
-  if (isProduction) {
-    // Production: Use OTLP exporter
-    const otlpExporter = new OTLPTraceExporter({
-      url: process.env.OTEL_EXPORTER_OTLP_ENDPOINT || 'http://localhost:4318/v1/traces',
-    });
-    provider.addSpanProcessor(new BatchSpanProcessor(otlpExporter));
-  } else {
-    // Development: Use console exporter for debugging
-    const consoleExporter = new ConsoleSpanExporter();
-    provider.addSpanProcessor(new BatchSpanProcessor(consoleExporter));
-  }
-
-  provider.register();
-  tracerProvider = provider;
-  isEnabled = true;
-}
-
-/**
- * Get a tracer instance
- * @param enabled - Whether telemetry is enabled
- * @param serviceName - Optional service name override
- * @returns Tracer instance (or no-op tracer if disabled)
- */
-export function getTracer(enabled: boolean, serviceName?: string): Tracer {
-  if (!enabled) {
-    // Return no-op tracer when disabled
-    return trace.getTracer(TRACER_NAME);
-  }
-
-  if (!isEnabled) {
-    initializeTracerProvider(serviceName);
-  }
-
+export function getTracer(): Tracer {
   return trace.getTracer(TRACER_NAME);
-}
-
-/**
- * Shutdown the tracer provider (for graceful shutdown)
- */
-export async function shutdownTelemetry(): Promise<void> {
-  if (tracerProvider && 'shutdown' in tracerProvider) {
-    await tracerProvider.shutdown();
-    tracerProvider = null;
-    isEnabled = false;
-  }
 }

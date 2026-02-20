@@ -90,10 +90,9 @@ export class CollectionStorageAdapter {
       prettyPrint: options.prettyPrint ?? true,
       version: options.version ?? '1.0',
     };
-    this.tracer = getTracer(
-      options.telemetry?.enabled ?? false,
-      options.telemetry?.serviceName
-    );
+    // Get tracer from global provider (set up by the application)
+    // Returns no-op tracer if no provider is registered
+    this.tracer = getTracer();
   }
 
   // ============================================================================

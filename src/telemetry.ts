@@ -14,8 +14,10 @@
  */
 
 import { trace, Tracer } from '@opentelemetry/api';
+import packageJson from '../package.json';
 
 export const TRACER_NAME = '@principal-ai/alexandria-collections';
+export const TRACER_VERSION = packageJson.version;
 
 /**
  * Get a tracer instance for instrumenting alexandria-collections operations
@@ -23,6 +25,9 @@ export const TRACER_NAME = '@principal-ai/alexandria-collections';
  * This function retrieves a tracer from the global OpenTelemetry provider
  * that was set up by the application. If no provider is registered, it
  * returns a no-op tracer that safely does nothing.
+ *
+ * The tracer is tagged with the library name and version, allowing you to
+ * identify and filter spans by instrumentation library in your observability tools.
  *
  * @returns Tracer instance (real tracer if provider is registered, no-op tracer otherwise)
  *
@@ -40,5 +45,5 @@ export const TRACER_NAME = '@principal-ai/alexandria-collections';
  * ```
  */
 export function getTracer(): Tracer {
-  return trace.getTracer(TRACER_NAME);
+  return trace.getTracer(TRACER_NAME, TRACER_VERSION);
 }

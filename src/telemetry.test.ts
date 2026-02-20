@@ -4,7 +4,8 @@
 
 import { describe, expect, test, beforeEach, afterEach } from 'bun:test';
 import { trace, TracerProvider, Tracer } from '@opentelemetry/api';
-import { getTracer, TRACER_NAME } from './telemetry';
+import { getTracer, TRACER_NAME, TRACER_VERSION } from './telemetry';
+import packageJson from '../package.json';
 
 describe('telemetry', () => {
   afterEach(() => {
@@ -14,6 +15,10 @@ describe('telemetry', () => {
 
   test('TRACER_NAME is correctly defined', () => {
     expect(TRACER_NAME).toBe('@principal-ai/alexandria-collections');
+  });
+
+  test('TRACER_VERSION matches package.json version', () => {
+    expect(TRACER_VERSION).toBe(packageJson.version);
   });
 
   test('getTracer returns a Tracer instance', () => {

@@ -112,6 +112,13 @@ export interface Collection {
   metadata?: CollectionMetadata;
   /** Repository memberships in this collection */
   members: CollectionMembership[];
+
+  /** Storage visibility - 'public' or 'private' repo */
+  visibility: 'public' | 'private';
+  /** Owner identifier (username or org name) */
+  owner: string;
+  /** Type of owner - user or organization */
+  ownerType: 'user' | 'organization';
 }
 
 /**

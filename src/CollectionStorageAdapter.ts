@@ -319,6 +319,9 @@ export class CollectionStorageAdapter {
     isDefault?: boolean;
     suggestedClonePath?: string;
     metadata?: Record<string, unknown>;
+    visibility: 'public' | 'private';
+    owner: string;
+    ownerType: 'user' | 'organization';
   }): Promise<Collection> {
     const span = this.tracer.startSpan('collection.create', {
       attributes: {
@@ -345,6 +348,9 @@ export class CollectionStorageAdapter {
           members: [],
           createdAt: now,
           updatedAt: now,
+          visibility: input.visibility,
+          owner: input.owner,
+          ownerType: input.ownerType,
         };
 
         await this.writeCollectionFile(newCollection);
